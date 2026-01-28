@@ -2,29 +2,170 @@
 
 ## 圖片庫，支援 S3、EXIF 詳細資訊、地圖
 
-## 上傳圖片
+---
+
+## 需求概述
+
+### 上傳圖片
 圖片上傳支援github/s3/r2等多種儲存服務
 並且上傳後自動生成縮圖
 
-## 管理員介面
+### 不只圖片
+支援影片上傳，並且自動生成縮圖與預覽影片
+
+### 管理員介面
 只有相簿管理員才可以上傳圖片、編輯圖片資訊、刪除圖片
 
-## 相簿設計
+### 相簿設計
 相簿使用瀑布流來展示圖片，並且支援無限捲動。
 每張圖片停留都會顯示標題與一些基本資訊
 有分公開與私人相簿，私人相簿需要特定的連結才能觀看，公開相簿則會在主頁列出
 
 相簿內建搜索器，可以依照標題、描述、EXIF 資訊來搜尋圖片，甚至是圖片內的物件或者人物分類
 
-
 主頁面就是一個相簿，算是一個攝影師想要展示自己作品的地方。
-
 
 圖片分享功能
 
-## 圖片檢視器
+### 設計風格
+現代黑白配色, tailwindcss
+
+### 易用性設計
+操作邏輯要像google drive, 包括右鍵選單, 拖拉選取, 多選, 快捷鍵等
+
+### 圖片檢視器
 點擊圖片會進入圖片檢視器，可以看到更大的圖片以及詳細的 EXIF 資訊，圖片檢視器配置了簡易的圖片編輯功能，可以裁切、旋轉圖片
 支援hdr
 
-## 地圖功能
-如果圖片有包含 GPS 資訊，會自動在地圖上標記拍
+### 地圖功能
+如果圖片有包含 GPS 資訊，會自動在地圖上標記拍攝位置
+
+### 備份管理系統
+支援自動備份到多個雲端儲存服務，並且可以設定備份頻率與保留期限，並顯示目前備份狀態與歷史紀錄，個檔案也紀錄備份狀態
+
+---
+
+## 開發待辦清單
+
+### P0 基礎架構 (必須先完成)
+
+- [ ] **資料庫 Schema 設計**
+  - [ ] users 表 (id, email, password_hash, role, created_at)
+  - [ ] albums 表 (id, name, description, is_public, share_token, owner_id, created_at)
+  - [ ] photos 表 (id, album_id, filename, storage_path, thumbnail_path, title, description, width, height, size, mime_type, created_at)
+  - [ ] photo_exif 表 (photo_id, camera, lens, aperture, shutter_speed, iso, focal_length, taken_at, latitude, longitude, raw_data)
+  - [ ] backups 表 (id, photo_id, storage_provider, status, backup_path, created_at)
+  - [ ] backup_configs 表 (id, provider, credentials, frequency, retention_days, enabled)
+
+- [ ] **儲存服務抽象層**
+  - [ ] 定義統一介面 (upload, download, delete, getUrl)
+  - [ ] S3 adapter 實作
+  - [ ] R2 adapter 實作
+  - [ ] GitHub adapter 實作 (選用)
+  - [ ] 儲存設定管理
+
+- [ ] **管理員認證系統**
+  - [ ] 登入/登出 API
+  - [ ] Session 管理
+  - [ ] 路由保護 middleware
+  - [ ] 登入頁面 UI
+
+### P1 核心功能
+
+- [ ] **圖片上傳**
+  - [ ] 上傳 API endpoint
+  - [ ] 檔案驗證 (類型、大小)
+  - [ ] 縮圖自動生成 (sharp)
+  - [ ] 上傳進度顯示
+  - [ ] 拖放上傳 UI
+
+- [ ] **EXIF 資訊提取**
+  - [ ] 使用 exif-parser 或 exifr 提取 metadata
+  - [ ] GPS 座標解析
+  - [ ] 儲存至 photo_exif 表
+
+- [ ] **相簿管理**
+  - [ ] 相簿 CRUD API
+  - [ ] 公開/私人切換
+  - [ ] 分享連結生成
+  - [ ] 相簿封面設定
+
+- [ ] **瀑布流相簿頁面**
+  - [ ] Masonry layout 實作
+  - [ ] 無限捲動 (Intersection Observer)
+  - [ ] 圖片 hover 顯示資訊
+  - [ ] 響應式設計
+
+### P2 檢視功能
+
+- [ ] **圖片檢視器**
+  - [ ] Lightbox modal
+  - [ ] 左右切換圖片
+  - [ ] EXIF 資訊面板
+  - [ ] 鍵盤導航 (←→ ESC)
+
+- [ ] **圖片編輯**
+  - [ ] 裁切功能
+  - [ ] 旋轉功能
+  - [ ] 儲存編輯結果
+
+- [ ] **HDR 支援**
+  - [ ] 檢測 HDR 圖片
+  - [ ] 適當的色彩空間渲染
+
+### P3 進階功能
+
+- [ ] **影片支援**
+  - [ ] 影片上傳
+  - [ ] 縮圖生成 (ffmpeg)
+  - [ ] 預覽影片生成
+  - [ ] 影片播放器
+
+- [ ] **地圖功能**
+  - [ ] 整合 Leaflet/Mapbox
+  - [ ] 顯示有 GPS 的圖片標記
+  - [ ] 點擊標記開啟圖片
+
+- [ ] **搜尋功能**
+  - [ ] 全文搜尋 (標題、描述)
+  - [ ] EXIF 篩選 (相機、日期範圍)
+  - [ ] 物件/人物分類 (需要 ML 服務)
+
+- [ ] **備份管理系統**
+  - [ ] 備份設定 UI
+  - [ ] 排程備份 (cron job)
+  - [ ] 備份狀態儀表板
+  - [ ] 單檔備份狀態顯示
+
+### P4 UX 優化
+
+- [ ] **Google Drive 風格操作**
+  - [ ] 右鍵選單 (context menu)
+  - [ ] 框選多選 (drag select)
+  - [ ] Ctrl/Cmd + 點擊多選
+  - [ ] 快捷鍵 (Delete, Enter, Ctrl+A)
+
+- [ ] **圖片分享**
+  - [ ] 單張圖片分享連結
+  - [ ] 社群分享按鈕
+  - [ ] 嵌入碼生成
+
+---
+
+## 技術棧
+
+- **前端**: SvelteKit 5, Tailwind CSS 4, shadcn-svelte
+- **後端**: SvelteKit API routes
+- **資料庫**: SQLite + Drizzle ORM
+- **圖片處理**: Sharp
+- **影片處理**: FFmpeg
+- **地圖**: Leaflet
+- **儲存**: S3/R2 SDK
+
+---
+
+## 當前進度
+
+- [x] 專案初始化
+- [x] 基本 UI 組件 (Button, Card, Dialog)
+- [ ] 開始 P0 基礎架構...
