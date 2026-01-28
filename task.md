@@ -49,26 +49,34 @@
 
 ### P0 基礎架構 (必須先完成)
 
-- [ ] **資料庫 Schema 設計**
-  - [ ] users 表 (id, email, password_hash, role, created_at)
-  - [ ] albums 表 (id, name, description, is_public, share_token, owner_id, created_at)
-  - [ ] photos 表 (id, album_id, filename, storage_path, thumbnail_path, title, description, width, height, size, mime_type, created_at)
-  - [ ] photo_exif 表 (photo_id, camera, lens, aperture, shutter_speed, iso, focal_length, taken_at, latitude, longitude, raw_data)
-  - [ ] backups 表 (id, photo_id, storage_provider, status, backup_path, created_at)
-  - [ ] backup_configs 表 (id, provider, credentials, frequency, retention_days, enabled)
+- [x] **資料庫 Schema 設計**
+  - [x] users 表 (id, email, password_hash, name, role, created_at, updated_at)
+  - [x] sessions 表 (Lucia Auth)
+  - [x] albums 表 (id, name, description, is_public, share_token, cover_photo_id, owner_id, sort_order, created_at, updated_at)
+  - [x] photos 表 (id, album_id, filename, original_filename, mime_type, size, storage_path, thumbnail_path, storage_provider, width, height, aspect_ratio, is_hdr, title, description, media_type, video_duration, video_preview_path, sort_order, created_at, updated_at)
+  - [x] photo_exif 表 (photo_id, camera_make, camera_model, lens_model, aperture, shutter_speed, iso, focal_length, focal_length_35mm, latitude, longitude, altitude, taken_at, raw_exif)
+  - [x] storage_configs 表 (id, provider, name, is_default, config, created_at)
+  - [x] backups 表 (id, photo_id, storage_config_id, status, backup_path, error_message, created_at, completed_at)
+  - [x] backup_schedules 表 (id, storage_config_id, enabled, frequency, retention_days, last_run_at, next_run_at, created_at)
+  - [x] site_settings 表 (key, value, updated_at)
+  - [x] invite_codes 表 (id, code, created_by, max_uses, used_count, expires_at, is_active, created_at)
+  - [x] invite_code_uses 表 (id, invite_code_id, user_id, used_at)
 
-- [ ] **儲存服務抽象層**
-  - [ ] 定義統一介面 (upload, download, delete, getUrl)
-  - [ ] S3 adapter 實作
-  - [ ] R2 adapter 實作
+- [x] **儲存服務抽象層**
+  - [x] 定義統一介面 (StorageAdapter: upload, download, delete, getUrl, exists)
+  - [x] S3 adapter 實作 (支援 AWS S3)
+  - [x] R2 adapter 實作 (與 S3 共用，使用 S3 協議)
+  - [x] Local adapter 實作 (開發用)
   - [ ] GitHub adapter 實作 (選用)
-  - [ ] 儲存設定管理
+  - [x] 儲存設定管理 (getStorage 工廠函數)
 
-- [ ] **管理員認證系統**
-  - [ ] 登入/登出 API
-  - [ ] Session 管理
-  - [ ] 路由保護 middleware
-  - [ ] 登入頁面 UI
+- [x] **管理員認證系統**
+  - [x] 登入/登出 API (/api/auth/login, /api/auth/logout)
+  - [x] 註冊 API (/api/auth/register) - 支援邀請碼系統
+  - [x] Session 管理 (Lucia Auth)
+  - [x] 路由保護 middleware (hooks.server.ts)
+  - [x] 登入頁面 UI (/login)
+  - [x] 註冊頁面 UI (/register) - 支援邀請碼
 
 ### P1 核心功能
 
@@ -156,16 +164,20 @@
 
 - **前端**: SvelteKit 5, Tailwind CSS 4, shadcn-svelte
 - **後端**: SvelteKit API routes
-- **資料庫**: SQLite + Drizzle ORM
+- **資料庫**: Turso/SQLite + Drizzle ORM
+- **認證**: Lucia Auth (Session-based) + argon2 密碼雜湊
 - **圖片處理**: Sharp
 - **影片處理**: FFmpeg
 - **地圖**: Leaflet
-- **儲存**: S3/R2 SDK
+- **儲存**: @aws-sdk/client-s3 (S3/R2)
 
 ---
 
 ## 當前進度
 
 - [x] 專案初始化
-- [x] 基本 UI 組件 (Button, Card, Dialog)
-- [ ] 開始 P0 基礎架構...
+- [x] 基本 UI 組件 (Button, Card, Dialog, Input, Label)
+- [x] P0 資料庫 Schema 設計 (11 個表)
+- [x] P0 儲存服務抽象層 (S3/R2/Local adapters)
+- [x] P0 管理員認證系統 (登入/註冊/登出/路由保護)
+- [ ] P1 核心功能開發中...
