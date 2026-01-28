@@ -69,6 +69,9 @@
   - [x] Local adapter 實作 (開發用)
   - [ ] GitHub adapter 實作 (選用)
   - [x] 儲存設定管理 (getStorage 工廠函數)
+  - [x] 儲存設定 CRUD API (/api/storage-configs)
+  - [x] 連線測試 API (/api/storage-configs/test)
+  - [x] 管理員儲存設定頁面 (/admin/storage)
 
 - [x] **管理員認證系統**
   - [x] 登入/登出 API (/api/auth/login, /api/auth/logout)
@@ -80,37 +83,37 @@
 
 ### P1 核心功能
 
-- [ ] **圖片上傳**
-  - [ ] 上傳 API endpoint
-  - [ ] 檔案驗證 (類型、大小)
-  - [ ] 縮圖自動生成 (sharp)
-  - [ ] 上傳進度顯示
-  - [ ] 拖放上傳 UI
+- [x] **圖片上傳**
+  - [x] 上傳 API endpoint (/api/photos/upload)
+  - [x] 檔案驗證 (類型、大小)
+  - [x] 縮圖自動生成 (sharp)
+  - [ ] 上傳進度顯示 (目前為逐檔上傳)
+  - [x] 拖放上傳 UI (/upload)
 
-- [ ] **EXIF 資訊提取**
-  - [ ] 使用 exif-parser 或 exifr 提取 metadata
-  - [ ] GPS 座標解析
-  - [ ] 儲存至 photo_exif 表
+- [x] **EXIF 資訊提取**
+  - [x] 使用 exifr 提取 metadata
+  - [x] GPS 座標解析
+  - [x] 儲存至 photo_exif 表
 
-- [ ] **相簿管理**
-  - [ ] 相簿 CRUD API
-  - [ ] 公開/私人切換
-  - [ ] 分享連結生成
-  - [ ] 相簿封面設定
+- [x] **相簿管理**
+  - [x] 相簿 CRUD API (/api/albums)
+  - [x] 公開/私人切換
+  - [x] 分享連結生成 (shareToken)
+  - [x] 相簿封面設定
 
-- [ ] **瀑布流相簿頁面**
-  - [ ] Masonry layout 實作
+- [x] **瀑布流相簿頁面**
+  - [x] Masonry layout 實作 (CSS columns)
   - [ ] 無限捲動 (Intersection Observer)
-  - [ ] 圖片 hover 顯示資訊
-  - [ ] 響應式設計
+  - [x] 圖片 hover 顯示資訊
+  - [x] 響應式設計
 
 ### P2 檢視功能
 
-- [ ] **圖片檢視器**
-  - [ ] Lightbox modal
-  - [ ] 左右切換圖片
-  - [ ] EXIF 資訊面板
-  - [ ] 鍵盤導航 (←→ ESC)
+- [x] **圖片檢視器** (基礎版)
+  - [x] Lightbox modal
+  - [x] 左右切換圖片
+  - [x] EXIF 資訊面板
+  - [x] 鍵盤導航 (←→ ESC)
 
 - [ ] **圖片編輯**
   - [ ] 裁切功能
@@ -180,4 +183,11 @@
 - [x] P0 資料庫 Schema 設計 (11 個表)
 - [x] P0 儲存服務抽象層 (S3/R2/Local adapters)
 - [x] P0 管理員認證系統 (登入/註冊/登出/路由保護)
-- [ ] P1 核心功能開發中...
+- [x] 開發用 seed 腳本 (test/test 測試帳號)
+- [x] P1 圖片上傳 + 縮圖生成 + EXIF 提取
+- [x] P1 相簿 CRUD API
+- [x] P1 瀑布流相簿頁面 + Lightbox 檢視器
+- [x] 上傳頁面 (/upload) - 拖放上傳
+- [x] 相簿管理頁面 (/albums)
+- [x] 儲存服務設定管理頁面 (/admin/storage) - CRUD + 連線測試
+- [ ] P2-P4 進階功能開發中...

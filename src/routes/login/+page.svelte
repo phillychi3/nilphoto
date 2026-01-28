@@ -63,7 +63,7 @@
 					<Label for="email">電子郵件</Label>
 					<Input
 						id="email"
-						type="email"
+						type="text"
 						placeholder="your@email.com"
 						bind:value={email}
 						required
