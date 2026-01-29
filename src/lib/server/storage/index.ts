@@ -3,7 +3,7 @@ import { storageConfigs } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { S3Adapter } from './adapters/s3';
 import { LocalAdapter } from './adapters/local';
-import type { StorageAdapter, S3Config } from './types';
+import type { StorageAdapter } from './types';
 
 // 導出類型
 export type { StorageAdapter, UploadOptions, UploadResult, UrlOptions, S3Config, LocalConfig } from './types';
@@ -31,7 +31,7 @@ export async function getStorage(configId?: string): Promise<StorageAdapter> {
 	// 如果沒有設定，使用本地儲存
 	if (!config) {
 		return new LocalAdapter({
-			basePath: 'static/uploads',
+			basePath: 'data/uploads',
 			baseUrl: '/uploads'
 		});
 	}
@@ -56,7 +56,7 @@ export async function getStorage(configId?: string): Promise<StorageAdapter> {
 
 		default:
 			return new LocalAdapter({
-				basePath: 'static/uploads',
+				basePath: 'data/uploads',
 				baseUrl: '/uploads'
 			});
 	}

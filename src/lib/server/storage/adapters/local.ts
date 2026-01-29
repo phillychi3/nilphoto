@@ -11,7 +11,7 @@ export class LocalAdapter implements StorageAdapter {
 	private baseUrl: string;
 
 	constructor(config: LocalConfig = {}) {
-		this.basePath = config.basePath || 'static/uploads';
+		this.basePath = config.basePath || 'data/uploads';
 		this.baseUrl = config.baseUrl || '/uploads';
 	}
 
