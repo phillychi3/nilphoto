@@ -103,7 +103,7 @@
 
 - [x] **瀑布流相簿頁面**
   - [x] Masonry layout 實作 (CSS columns)
-  - [ ] 無限捲動 (Intersection Observer)
+  - [x] 無限捲動 (Intersection Observer)
   - [x] 圖片 hover 顯示資訊
   - [x] 響應式設計
 
@@ -125,6 +125,43 @@
 - [x] **HDR 支援**
   - [x] 上傳時檢測 HDR 圖片 (Sharp bit depth)
   - [x] 瀏覽器原生渲染 wide-gamut
+
+- [x] **相簿管理頁面**
+  - [x] 相簿刪除確認換成dialog
+  - [x] 批次圖片刪除
+  - [x] 批次圖片標籤管理
+
+- [x] **人員管理頁面**
+  - [x] 使用者列表
+  - [x] 使用者角色管理 (admin/user)
+  - [x] 邀請碼管理介面
+
+- [x] **站點設定頁面** (/admin/settings - 整合儲存設定)
+  - [x] 基本設定 (站點名稱、描述)
+  - [x] 儲存服務設定 (從 /admin/storage 整合)
+  - [ ] 其他全域設定
+
+- [x] **優化圖片檢視器**
+  - [x] 圖片放大縮小 (滑鼠滾輪/捏合手勢)
+  - [x] 圖片平移 (拖曳)
+  - [x] 全螢幕模式支援
+  - [x] 圖片載入進度指示器
+
+- [x] **網站首頁改為精選圖片** (系統相簿 isSystem, 強制 public, 不可刪除)
+
+- [x] **資料模型重構: 照片多對多相簿**
+  - [x] album_photos junction table
+  - [x] photos 移除 albumId, 新增 uploadedBy
+  - [x] 照片標籤系統 (tags + photo_tags)
+
+- [x] **全域照片檢視器 用於檢視全部上傳的照片，可將照片加入相簿, 一個照片可加入多個相簿**
+  - [x] 全域照片 API (/api/photos - 分頁)
+  - [x] 照片-相簿關聯 API (/api/albums/:id/photos)
+  - [x] 照片標籤 API (/api/tags, /api/photos/:id/tags)
+  - [x] 照片檢視頁面 (前端 UI)
+  - [x] 照片加入/移除相簿 UI
+  - [x] 照片批次操作 UI (選取/加入相簿/批次刪除)
+
 
 ### P3 進階功能
 
@@ -153,7 +190,7 @@
 ### P4 UX 優化
 
 - [ ] **Google Drive 風格操作**
-  - [ ] 右鍵選單 (context menu)
+  - [ ] 右鍵選單 (context menu)，含「設定封面圖片」選項
   - [ ] 框選多選 (drag select)
   - [ ] Ctrl/Cmd + 點擊多選
   - [ ] 快捷鍵 (Delete, Enter, Ctrl+A)
@@ -194,4 +231,11 @@
 - [x] 儲存服務設定管理頁面 (/admin/storage) - CRUD + 連線測試
 - [x] P2 圖片編輯器 (裁切/旋轉/下載 - 純前端)
 - [x] P2 HDR 偵測 + 瀏覽器原生渲染
+- [x] 資料模型重構: 照片多對多相簿 (album_photos) + 標籤系統 (tags/photo_tags)
+- [x] 首頁改為精選照片 (系統相簿 isSystem)
+- [x] 站點設定頁面 (/admin/settings - 整合儲存設定)
+- [x] 全域照片檢視器 (前端 + 後端完成)
+- [x] 相簿管理頁面改進 (刪除確認 dialog, 批次操作, 標籤管理)
+- [x] 人員管理頁面 (使用者列表/角色/邀請碼)
+- [x] Lightbox 增強 (縮放/平移/全螢幕)
 - [ ] P3-P4 進階功能開發中...

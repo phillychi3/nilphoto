@@ -1,36 +1,48 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import * as Card from '$lib/components/ui/card';
+	import Lightbox from '$lib/components/Lightbox.svelte';
 
-	interface Album {
+	interface Photo {
 		id: string;
-		name: string;
+		filename: string;
+		originalFilename: string;
+		title: string | null;
 		description: string | null;
-		isPublic: boolean;
-		coverPhoto: {
-			thumbnailPath: string;
+		width: number | null;
+		height: number | null;
+		aspectRatio: number | null;
+		storagePath: string;
+		thumbnailPath: string | null;
+		exif: {
+			cameraMake: string | null;
+			cameraModel: string | null;
+			aperture: number | null;
+			shutterSpeed: string | null;
+			iso: number | null;
+			focalLength: number | null;
 		} | null;
-		owner: {
-			id: string;
-			name: string | null;
-		};
-		createdAt: string;
 	}
 
-	let albums = $state<Album[]>([]);
+	let photos = $state<Photo[]>([]);
 	let loading = $state(true);
+	let lightboxIndex = $state(-1);
 
 	onMount(async () => {
 		try {
-			const res = await fetch('/api/albums');
+			const res = await fetch('/api/albums?system=featured');
 			const data = await res.json();
-			albums = data.albums;
+			photos = data.photos || [];
 		} catch (err) {
-			console.error('Failed to load albums:', err);
+			console.error('Failed to load featured photos:', err);
 		} finally {
 			loading = false;
 		}
 	});
+
+	function getPhotoUrl(photo: { storagePath: string; thumbnailPath: string | null }, thumbnail = false): string {
+		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
+		return `/uploads/${path}`;
+	}
 </script>
 
 <svelte:head>
@@ -40,60 +52,60 @@
 <div class="mx-auto max-w-7xl px-4 py-8">
 	<div class="mb-8">
 		<h1 class="text-3xl font-bold">NILPhoto</h1>
-		<p class="mt-2 text-muted-foreground">Photo Gallery</p>
+		<p class="mt-2 text-muted-foreground">精選照片</p>
 	</div>
 
 	{#if loading}
 		<div class="flex justify-center py-20">
 			<div class="text-muted-foreground">載入中...</div>
 		</div>
-	{:else if albums.length === 0}
+	{:else if photos.length === 0}
 		<div class="flex flex-col items-center justify-center py-20">
-			<p class="text-muted-foreground">目前沒有公開的相簿</p>
+			<p class="text-muted-foreground">目前沒有精選照片</p>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each albums as album}
-				<a href="/album/{album.id}" class="group">
-					<Card.Root class="overflow-hidden transition-colors hover:border-foreground/20">
-						<div class="aspect-4/3 overflow-hidden bg-muted">
-							{#if album.coverPhoto?.thumbnailPath}
-								<img
-									src="/uploads/{album.coverPhoto.thumbnailPath}"
-									alt={album.name}
-									class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-								/>
-							{:else}
-								<div
-									class="flex h-full w-full items-center justify-center text-muted-foreground"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="48"
-										height="48"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="1.5"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									>
-										<rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-										<circle cx="9" cy="9" r="2" />
-										<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-									</svg>
-								</div>
+		<div class="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+			{#each photos as photo, idx}
+				<button
+					class="mb-4 block w-full cursor-zoom-in overflow-hidden rounded-lg break-inside-avoid"
+					onclick={() => (lightboxIndex = idx)}
+				>
+					<div class="group relative">
+						<img
+							src={getPhotoUrl(photo, true)}
+							alt={photo.title || photo.originalFilename}
+							class="w-full object-cover transition-transform duration-300 group-hover:scale-105"
+							style={photo.aspectRatio ? `aspect-ratio: ${photo.aspectRatio}` : ''}
+							loading="lazy"
+						/>
+						<div
+							class="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 transition-opacity group-hover:opacity-100"
+						>
+							{#if photo.title}
+								<p class="text-sm font-medium text-white">{photo.title}</p>
+							{/if}
+							{#if photo.exif}
+								<p class="text-xs text-white/70">
+									{#if photo.exif.cameraModel}
+										{photo.exif.cameraMake || ''} {photo.exif.cameraModel}
+									{/if}
+									{#if photo.exif.aperture}
+										&middot; f/{photo.exif.aperture}
+									{/if}
+									{#if photo.exif.shutterSpeed}
+										&middot; {photo.exif.shutterSpeed}
+									{/if}
+									{#if photo.exif.iso}
+										&middot; ISO {photo.exif.iso}
+									{/if}
+								</p>
 							{/if}
 						</div>
-						<Card.Header>
-							<Card.Title>{album.name}</Card.Title>
-							{#if album.description}
-								<Card.Description>{album.description}</Card.Description>
-							{/if}
-						</Card.Header>
-					</Card.Root>
-				</a>
+					</div>
+				</button>
 			{/each}
 		</div>
 	{/if}
 </div>
+
+<Lightbox {photos} bind:index={lightboxIndex} {getPhotoUrl} />

@@ -46,6 +46,26 @@ async function seed() {
 		console.log('Created test user: email=test, password=test');
 	}
 
+	// Create featured system album
+	const user = existingUser || (await db.query.users.findFirst({ where: eq(schema.users.email, 'test') }));
+
+	const existingFeatured = await db.query.albums.findFirst({
+		where: eq(schema.albums.isSystem, true)
+	});
+
+	if (!existingFeatured && user) {
+		await db.insert(schema.albums).values({
+			name: '精選',
+			description: '精選照片',
+			isPublic: true,
+			isSystem: true,
+			ownerId: user.id
+		});
+		console.log('Created featured system album');
+	} else {
+		console.log('Featured system album already exists, skipping...');
+	}
+
 	// Set default registration mode to 'open' if not set
 	const registrationMode = await db.query.siteSettings.findFirst({
 		where: eq(schema.siteSettings.key, 'registration_mode')

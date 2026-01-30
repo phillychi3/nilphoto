@@ -94,8 +94,6 @@
 	}
 
 	async function uploadAll() {
-		if (!selectedAlbumId) return;
-
 		for (let i = 0; i < uploadItems.length; i++) {
 			const item = uploadItems[i];
 			if (item.status !== 'pending') continue;
@@ -105,7 +103,9 @@
 			try {
 				const formData = new FormData();
 				formData.append('file', item.file);
-				formData.append('albumId', selectedAlbumId);
+				if (selectedAlbumId) {
+					formData.append('albumId', selectedAlbumId);
+				}
 
 				const res = await fetch('/api/photos/upload', {
 					method: 'POST',
@@ -152,6 +152,7 @@
 							class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
 							bind:value={selectedAlbumId}
 						>
+							<option value="">不歸入相簿</option>
 							{#each albums as album}
 								<option value={album.id}>{album.name}</option>
 							{/each}
@@ -222,7 +223,7 @@
 				<p class="text-sm text-muted-foreground">
 					{uploadItems.length} 個檔案 &middot; {doneCount} 已上傳
 				</p>
-				<Button onclick={uploadAll} disabled={pendingCount === 0 || !selectedAlbumId}>
+				<Button onclick={uploadAll} disabled={pendingCount === 0}>
 					上傳全部 ({pendingCount})
 				</Button>
 			</div>

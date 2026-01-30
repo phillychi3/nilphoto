@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { albums, photos } from '$lib/server/db/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { albums, albumPhotos } from '$lib/server/db/schema';
+import { eq, asc } from 'drizzle-orm';
 
 // GET /api/albums/:id - Get album with photos
 export const GET: RequestHandler = async ({ params, locals, url }) => {
@@ -25,7 +25,6 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		return json({ error: '相簿不存在' }, { status: 404 });
 	}
 
-	// Check access permissions
 	const isOwner = locals.user?.id === album.ownerId;
 	const isAdmin = locals.user?.role === 'admin';
 	const hasShareToken = shareToken === album.shareToken;
@@ -34,18 +33,24 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		return json({ error: '沒有權限查看此相簿' }, { status: 403 });
 	}
 
-	// Get photos for this album
-	const albumPhotos = await db.query.photos.findMany({
-		where: eq(photos.albumId, id!),
-		orderBy: [asc(photos.sortOrder), asc(photos.createdAt)],
+	// Get photos through album_photos junction
+	const links = await db.query.albumPhotos.findMany({
+		where: eq(albumPhotos.albumId, id!),
+		orderBy: [asc(albumPhotos.sortOrder), asc(albumPhotos.addedAt)],
 		with: {
-			exif: true
+			photo: {
+				with: {
+					exif: true
+				}
+			}
 		}
 	});
 
+	const photosResult = links.map((link) => link.photo);
+
 	return json({
 		album,
-		photos: albumPhotos,
+		photos: photosResult,
 		canEdit: isOwner || isAdmin
 	});
 };
@@ -66,7 +71,6 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		return json({ error: '相簿不存在' }, { status: 404 });
 	}
 
-	// Check ownership
 	if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
 		return json({ error: '沒有權限修改此相簿' }, { status: 403 });
 	}
@@ -89,17 +93,23 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	}
 
 	if (isPublic !== undefined) {
-		updateData.isPublic = Boolean(isPublic);
+		// System albums must stay public
+		if (album.isSystem) {
+			updateData.isPublic = true;
+		} else {
+			updateData.isPublic = Boolean(isPublic);
+		}
 	}
 
 	if (coverPhotoId !== undefined) {
-		// Validate cover photo exists and belongs to this album
 		if (coverPhotoId !== null) {
-			const coverPhoto = await db.query.photos.findFirst({
-				where: and(eq(photos.id, coverPhotoId), eq(photos.albumId, id!))
+			// Validate cover photo is in this album
+			const link = await db.query.albumPhotos.findFirst({
+				where: (ap, { and, eq }) =>
+					and(eq(ap.albumId, id!), eq(ap.photoId, coverPhotoId))
 			});
-			if (!coverPhoto) {
-				return json({ error: '封面圖片不存在' }, { status: 400 });
+			if (!link) {
+				return json({ error: '封面圖片不存在於此相簿' }, { status: 400 });
 			}
 		}
 		updateData.coverPhotoId = coverPhotoId;
@@ -130,12 +140,15 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		return json({ error: '相簿不存在' }, { status: 404 });
 	}
 
-	// Check ownership
+	if (album.isSystem) {
+		return json({ error: '系統相簿無法刪除' }, { status: 403 });
+	}
+
 	if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
 		return json({ error: '沒有權限刪除此相簿' }, { status: 403 });
 	}
 
-	// Delete album (photos will be cascade deleted due to schema)
+	// Delete album (album_photos links cascade, photos themselves remain)
 	await db.delete(albums).where(eq(albums.id, id!));
 
 	return json({ success: true });

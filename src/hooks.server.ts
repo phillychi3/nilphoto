@@ -2,7 +2,7 @@ import { redirect, type Handle } from '@sveltejs/kit';
 import * as auth from '$lib/server/auth';
 
 // Routes that require authentication
-const protectedRoutes = ['/admin', '/upload', '/albums'];
+const protectedRoutes = ['/admin', '/upload', '/albums', '/photos'];
 
 // Routes that require admin role
 const adminRoutes = ['/admin'];

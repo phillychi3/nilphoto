@@ -1,34 +1,60 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { albums } from '$lib/server/db/schema';
-import { eq, desc, and, or } from 'drizzle-orm';
+import { albums, albumPhotos } from '$lib/server/db/schema';
+import { eq, desc, or, and, asc } from 'drizzle-orm';
 
 function generateShareToken(): string {
 	return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
 // GET /api/albums - List albums
+// ?system=featured - Get featured system album with photos
+// ?includePrivate=true - Include private albums (admin/owner)
 export const GET: RequestHandler = async ({ locals, url }) => {
+	const system = url.searchParams.get('system');
+
+	// Return featured system album photos
+	if (system === 'featured') {
+		const featured = await db.query.albums.findFirst({
+			where: and(eq(albums.isSystem, true), eq(albums.name, '精選'))
+		});
+
+		if (!featured) {
+			return json({ album: null, photos: [] });
+		}
+
+		const links = await db.query.albumPhotos.findMany({
+			where: eq(albumPhotos.albumId, featured.id),
+			orderBy: [asc(albumPhotos.sortOrder), asc(albumPhotos.addedAt)],
+			with: {
+				photo: {
+					with: { exif: true }
+				}
+			}
+		});
+
+		return json({
+			album: featured,
+			photos: links.map((l) => l.photo)
+		});
+	}
+
 	const includePrivate = url.searchParams.get('includePrivate') === 'true';
 
 	let whereClause;
 
 	if (locals.user) {
 		if (includePrivate && locals.user.role === 'admin') {
-			// Admin can see all albums
 			whereClause = undefined;
 		} else if (includePrivate) {
-			// Regular users can only see their own albums + public
 			whereClause = or(
 				eq(albums.isPublic, true),
 				eq(albums.ownerId, locals.user.id)
 			);
 		} else {
-			// Only public albums
 			whereClause = eq(albums.isPublic, true);
 		}
 	} else {
-		// Not logged in - only public albums
 		whereClause = eq(albums.isPublic, true);
 	}
 

@@ -41,6 +41,7 @@ export const albums = sqliteTable(
 		name: text('name').notNull(),
 		description: text('description'),
 		isPublic: integer('is_public', { mode: 'boolean' }).default(false).notNull(),
+		isSystem: integer('is_system', { mode: 'boolean' }).default(false).notNull(),
 		shareToken: text('share_token').unique(),
 		coverPhotoId: text('cover_photo_id'),
 		ownerId: text('owner_id')
@@ -65,9 +66,9 @@ export const photos = sqliteTable(
 		id: text('id')
 			.primaryKey()
 			.$defaultFn(() => crypto.randomUUID()),
-		albumId: text('album_id')
+		uploadedBy: text('uploaded_by')
 			.notNull()
-			.references(() => albums.id, { onDelete: 'cascade' }),
+			.references(() => users.id),
 		// 檔案資訊
 		filename: text('filename').notNull(),
 		originalFilename: text('original_filename').notNull(),
@@ -95,7 +96,7 @@ export const photos = sqliteTable(
 		createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 		updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date())
 	},
-	(table) => [index('photos_album_idx').on(table.albumId)]
+	(table) => [index('photos_uploaded_by_idx').on(table.uploadedBy)]
 );
 
 // ============================================
@@ -239,10 +240,68 @@ export const inviteCodeUses = sqliteTable('invite_code_uses', {
 });
 
 // ============================================
+// 12. Album Photos (多對多 junction)
+// ============================================
+export const albumPhotos = sqliteTable(
+	'album_photos',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		albumId: text('album_id')
+			.notNull()
+			.references(() => albums.id, { onDelete: 'cascade' }),
+		photoId: text('photo_id')
+			.notNull()
+			.references(() => photos.id, { onDelete: 'cascade' }),
+		sortOrder: integer('sort_order').default(0),
+		addedAt: integer('added_at', { mode: 'timestamp' }).$defaultFn(() => new Date())
+	},
+	(table) => [
+		index('album_photos_album_idx').on(table.albumId),
+		index('album_photos_photo_idx').on(table.photoId)
+	]
+);
+
+// ============================================
+// 13. Tags 表
+// ============================================
+export const tags = sqliteTable('tags', {
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	name: text('name').notNull().unique(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date())
+});
+
+// ============================================
+// 14. Photo Tags (多對多 junction)
+// ============================================
+export const photoTags = sqliteTable(
+	'photo_tags',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		photoId: text('photo_id')
+			.notNull()
+			.references(() => photos.id, { onDelete: 'cascade' }),
+		tagId: text('tag_id')
+			.notNull()
+			.references(() => tags.id, { onDelete: 'cascade' })
+	},
+	(table) => [
+		index('photo_tags_photo_idx').on(table.photoId),
+		index('photo_tags_tag_idx').on(table.tagId)
+	]
+);
+
+// ============================================
 // Relations 定義
 // ============================================
 export const usersRelations = relations(users, ({ many }) => ({
 	albums: many(albums),
+	photos: many(photos),
 	sessions: many(sessions),
 	inviteCodes: many(inviteCodes),
 	inviteCodeUses: many(inviteCodeUses)
@@ -254,14 +313,30 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 
 export const albumsRelations = relations(albums, ({ one, many }) => ({
 	owner: one(users, { fields: [albums.ownerId], references: [users.id] }),
-	photos: many(photos),
+	albumPhotos: many(albumPhotos),
 	coverPhoto: one(photos, { fields: [albums.coverPhotoId], references: [photos.id] })
 }));
 
 export const photosRelations = relations(photos, ({ one, many }) => ({
-	album: one(albums, { fields: [photos.albumId], references: [albums.id] }),
+	uploader: one(users, { fields: [photos.uploadedBy], references: [users.id] }),
 	exif: one(photoExif, { fields: [photos.id], references: [photoExif.photoId] }),
-	backups: many(backups)
+	backups: many(backups),
+	albumPhotos: many(albumPhotos),
+	photoTags: many(photoTags)
+}));
+
+export const albumPhotosRelations = relations(albumPhotos, ({ one }) => ({
+	album: one(albums, { fields: [albumPhotos.albumId], references: [albums.id] }),
+	photo: one(photos, { fields: [albumPhotos.photoId], references: [photos.id] })
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+	photoTags: many(photoTags)
+}));
+
+export const photoTagsRelations = relations(photoTags, ({ one }) => ({
+	photo: one(photos, { fields: [photoTags.photoId], references: [photos.id] }),
+	tag: one(tags, { fields: [photoTags.tagId], references: [tags.id] })
 }));
 
 export const photoExifRelations = relations(photoExif, ({ one }) => ({

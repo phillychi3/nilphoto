@@ -1,6 +1,6 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { photos, photoExif, albums } from '$lib/server/db/schema';
+import { photos, photoExif, albums, albumPhotos } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { getStorage, generateStorageKey } from '$lib/server/storage';
 import {
@@ -10,12 +10,10 @@ import {
 } from '$lib/server/services/image';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
-	// Check authentication
 	if (!locals.user) {
 		return json({ error: '請先登入' }, { status: 401 });
 	}
 
-	// Only admin can upload
 	if (locals.user.role !== 'admin') {
 		return json({ error: '沒有權限上傳' }, { status: 403 });
 	}
@@ -27,7 +25,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const title = formData.get('title') as string | null;
 		const description = formData.get('description') as string | null;
 
-		// Validate file
 		if (!file) {
 			return json({ error: '請選擇檔案' }, { status: 400 });
 		}
@@ -40,49 +37,39 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: '檔案大小超過限制 (最大 50MB)' }, { status: 400 });
 		}
 
-		// Validate album exists
-		if (!albumId) {
-			return json({ error: '請選擇相簿' }, { status: 400 });
+		// Validate album if provided
+		if (albumId) {
+			const album = await db.query.albums.findFirst({
+				where: eq(albums.id, albumId)
+			});
+
+			if (!album) {
+				return json({ error: '相簿不存在' }, { status: 404 });
+			}
+
+			if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
+				return json({ error: '沒有權限上傳到此相簿' }, { status: 403 });
+			}
 		}
 
-		const album = await db.query.albums.findFirst({
-			where: eq(albums.id, albumId)
-		});
-
-		if (!album) {
-			return json({ error: '相簿不存在' }, { status: 404 });
-		}
-
-		// Check album ownership
-		if (album.ownerId !== locals.user.id) {
-			return json({ error: '沒有權限上傳到此相簿' }, { status: 403 });
-		}
-
-		// Read file buffer
 		const buffer = Buffer.from(await file.arrayBuffer());
-
-		// Process image: get metadata, generate thumbnail, extract EXIF
 		const { metadata, thumbnail, exif } = await processImage(buffer);
 
-		// Get storage adapter
 		const storage = await getStorage();
-		const storageProvider = 'local'; // Default to local for now
+		const storageProvider = 'local';
 
-		// Generate storage keys
 		const originalKey = generateStorageKey(file.name, 'photos');
 		const thumbnailKey = generateStorageKey(file.name, 'thumbnails');
 
-		// Upload original and thumbnail
 		await Promise.all([
 			storage.upload(originalKey, buffer, { contentType: file.type }),
 			storage.upload(thumbnailKey, thumbnail.buffer, { contentType: 'image/jpeg' })
 		]);
 
-		// Insert photo record
 		const [newPhoto] = await db
 			.insert(photos)
 			.values({
-				albumId,
+				uploadedBy: locals.user.id,
 				filename: originalKey.split('/').pop() || file.name,
 				originalFilename: file.name,
 				mimeType: file.type,
@@ -100,7 +87,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			})
 			.returning();
 
-		// Insert EXIF data if available
+		// Link to album if provided
+		if (albumId) {
+			await db.insert(albumPhotos).values({
+				albumId,
+				photoId: newPhoto.id
+			});
+		}
+
 		if (exif) {
 			await db.insert(photoExif).values({
 				photoId: newPhoto.id,
@@ -120,7 +114,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			});
 		}
 
-		// Get URLs for response
 		const [originalUrl, thumbnailUrl] = await Promise.all([
 			storage.getUrl(originalKey),
 			storage.getUrl(thumbnailKey)

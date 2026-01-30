@@ -41,11 +41,17 @@
 						<a href="/upload" class="text-sm text-muted-foreground hover:text-foreground">
 							上傳
 						</a>
+						<a href="/photos" class="text-sm text-muted-foreground hover:text-foreground">
+							所有照片
+						</a>
 						<a href="/albums" class="text-sm text-muted-foreground hover:text-foreground">
 							相簿管理
 						</a>
-						<a href="/admin/storage" class="text-sm text-muted-foreground hover:text-foreground">
-							儲存設定
+						<a href="/admin/users" class="text-sm text-muted-foreground hover:text-foreground">
+							人員管理
+						</a>
+						<a href="/admin/settings" class="text-sm text-muted-foreground hover:text-foreground">
+							站點設定
 						</a>
 					{/if}
 					<span class="text-sm text-muted-foreground">{user.name || user.email}</span>
