@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import Lightbox from '$lib/components/Lightbox.svelte';
 
@@ -26,15 +27,22 @@
 		aspectRatio: number | null;
 		storagePath: string;
 		thumbnailPath: string | null;
+		createdAt?: string;
 		albums?: Album[];
 		tags?: Tag[];
 		exif: {
 			cameraMake: string | null;
 			cameraModel: string | null;
+			lensModel?: string | null;
 			aperture: number | null;
 			shutterSpeed: string | null;
 			iso: number | null;
 			focalLength: number | null;
+			focalLength35mm?: number | null;
+			latitude?: number | null;
+			longitude?: number | null;
+			altitude?: number | null;
+			takenAt?: string | null;
 		} | null;
 	}
 
@@ -57,9 +65,22 @@
 	let showAddAlbum = $state(false);
 	let targetAlbumId = $state('');
 
+	// Search & filters
+	let searchQuery = $state('');
+	let showFilters = $state(false);
+	let filterCamera = $state('');
+	let filterDateFrom = $state('');
+	let filterDateTo = $state('');
+	let filterIsoMin = $state('');
+	let filterIsoMax = $state('');
+	let filterTag = $state('');
+	let activeFilterCount = $derived(
+		[filterCamera, filterDateFrom, filterDateTo, filterIsoMin, filterIsoMax, filterTag].filter(Boolean).length
+	);
+	let isSearching = $derived(!!searchQuery || activeFilterCount > 0);
+
 	// Infinite scroll sentinel
 	let sentinelEl = $state<HTMLDivElement | null>(null);
-
 	let observer: IntersectionObserver | undefined;
 
 	onMount(() => {
@@ -84,11 +105,25 @@
 		}
 	});
 
+	function buildSearchParams(page: number): string {
+		const params = new URLSearchParams();
+		params.set('page', String(page));
+		params.set('limit', String(PAGE_SIZE));
+		if (searchQuery.trim()) params.set('q', searchQuery.trim());
+		if (filterCamera.trim()) params.set('camera', filterCamera.trim());
+		if (filterDateFrom) params.set('dateFrom', filterDateFrom);
+		if (filterDateTo) params.set('dateTo', filterDateTo);
+		if (filterIsoMin) params.set('isoMin', filterIsoMin);
+		if (filterIsoMax) params.set('isoMax', filterIsoMax);
+		if (filterTag.trim()) params.set('tag', filterTag.trim());
+		return params.toString();
+	}
+
 	async function loadPhotos() {
 		loading = true;
 		currentPage = 1;
 		try {
-			const res = await fetch(`/api/photos?page=1&limit=${PAGE_SIZE}`);
+			const res = await fetch(`/api/photos?${buildSearchParams(1)}`);
 			const data = await res.json();
 			photos = data.photos || [];
 			hasMore = data.hasMore ?? false;
@@ -103,7 +138,7 @@
 		loadingMore = true;
 		try {
 			currentPage++;
-			const res = await fetch(`/api/photos?page=${currentPage}&limit=${PAGE_SIZE}`);
+			const res = await fetch(`/api/photos?${buildSearchParams(currentPage)}`);
 			const data = await res.json();
 			photos = [...photos, ...(data.photos || [])];
 			hasMore = data.hasMore ?? false;
@@ -121,6 +156,21 @@
 		} catch {
 			// ignore
 		}
+	}
+
+	function doSearch() {
+		loadPhotos();
+	}
+
+	function clearFilters() {
+		searchQuery = '';
+		filterCamera = '';
+		filterDateFrom = '';
+		filterDateTo = '';
+		filterIsoMin = '';
+		filterIsoMax = '';
+		filterTag = '';
+		loadPhotos();
 	}
 
 	function toggleSelect(id: string) {
@@ -168,7 +218,10 @@
 		await loadPhotos();
 	}
 
-	function getPhotoUrl(photo: { storagePath: string; thumbnailPath: string | null }, thumbnail = false): string {
+	function getPhotoUrl(
+		photo: { storagePath: string; thumbnailPath: string | null },
+		thumbnail = false
+	): string {
 		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
 		return `/uploads/${path}`;
 	}
@@ -190,7 +243,13 @@
 	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="text-2xl font-bold">所有照片</h1>
-			<p class="text-sm text-muted-foreground">{totalPhotos} 張照片</p>
+			<p class="text-sm text-muted-foreground">
+				{#if isSearching}
+					找到 {totalPhotos} 張照片
+				{:else}
+					{totalPhotos} 張照片
+				{/if}
+			</p>
 		</div>
 		<div class="flex items-center gap-2">
 			<Button variant="outline" size="sm" onclick={selectAll}>
@@ -199,14 +258,138 @@
 		</div>
 	</div>
 
+	<!-- Search bar -->
+	<div class="mb-4">
+		<form
+			class="flex gap-2"
+			onsubmit={(e) => {
+				e.preventDefault();
+				doSearch();
+			}}
+		>
+			<div class="relative flex-1">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+				>
+					<circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+				</svg>
+				<Input
+					bind:value={searchQuery}
+					placeholder="搜尋標題、描述、檔名..."
+					class="pl-9"
+				/>
+			</div>
+			<Button type="submit" variant="outline">搜尋</Button>
+			<Button
+				type="button"
+				variant={showFilters ? 'default' : 'outline'}
+				onclick={() => (showFilters = !showFilters)}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="mr-1"
+				>
+					<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+				</svg>
+				篩選
+				{#if activeFilterCount > 0}
+					<span
+						class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary-foreground text-[10px] text-primary"
+					>
+						{activeFilterCount}
+					</span>
+				{/if}
+			</Button>
+		</form>
+
+		<!-- Filter panel -->
+		{#if showFilters}
+			<div class="mt-3 rounded-lg border bg-card p-4">
+				<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					<div class="space-y-1.5">
+						<Label for="filter-camera">相機 / 鏡頭</Label>
+						<Input
+							id="filter-camera"
+							bind:value={filterCamera}
+							placeholder="例如: Sony, Canon, 24-70..."
+						/>
+					</div>
+					<div class="space-y-1.5">
+						<Label for="filter-tag">標籤</Label>
+						<Input id="filter-tag" bind:value={filterTag} placeholder="標籤名稱" />
+					</div>
+					<div class="space-y-1.5">
+						<Label>拍攝日期</Label>
+						<div class="flex items-center gap-2">
+							<input
+								type="date"
+								bind:value={filterDateFrom}
+								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+							/>
+							<span class="text-muted-foreground">~</span>
+							<input
+								type="date"
+								bind:value={filterDateTo}
+								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+							/>
+						</div>
+					</div>
+					<div class="space-y-1.5">
+						<Label>ISO 範圍</Label>
+						<div class="flex items-center gap-2">
+							<Input bind:value={filterIsoMin} placeholder="最小" type="number" />
+							<span class="text-muted-foreground">~</span>
+							<Input bind:value={filterIsoMax} placeholder="最大" type="number" />
+						</div>
+					</div>
+				</div>
+				<div class="mt-4 flex items-center gap-2">
+					<Button size="sm" onclick={doSearch}>套用篩選</Button>
+					{#if activeFilterCount > 0}
+						<Button variant="ghost" size="sm" onclick={clearFilters}>清除全部</Button>
+					{/if}
+				</div>
+			</div>
+		{/if}
+	</div>
+
 	<!-- Batch actions bar -->
 	{#if selectedIds.size > 0}
 		<div class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
 			<span class="text-sm font-medium">已選取 {selectedIds.size} 張</span>
-			<Button variant="outline" size="sm" onclick={() => { targetAlbumId = albums[0]?.id || ''; showAddAlbum = true; }}>
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={() => {
+					targetAlbumId = albums[0]?.id || '';
+					showAddAlbum = true;
+				}}
+			>
 				加入相簿
 			</Button>
-			<Button variant="outline" size="sm" class="text-destructive hover:text-destructive" onclick={batchDelete}>
+			<Button
+				variant="outline"
+				size="sm"
+				class="text-destructive hover:text-destructive"
+				onclick={batchDelete}
+			>
 				永久刪除
 			</Button>
 			<Button variant="ghost" size="sm" onclick={clearSelection}>取消</Button>
@@ -219,13 +402,24 @@
 		</div>
 	{:else if photos.length === 0}
 		<div class="flex flex-col items-center justify-center py-20">
-			<p class="text-muted-foreground">目前沒有照片</p>
+			{#if isSearching}
+				<p class="text-muted-foreground">找不到符合條件的照片</p>
+				<Button variant="ghost" class="mt-2" onclick={clearFilters}>清除搜尋條件</Button>
+			{:else}
+				<p class="text-muted-foreground">目前沒有照片</p>
+			{/if}
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<div
+			class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+		>
 			{#each photos as photo, idx}
 				<button
-					class="group relative aspect-square overflow-hidden rounded-lg border-2 transition-colors {selectedIds.has(photo.id) ? 'border-primary' : 'border-transparent'}"
+					class="group relative aspect-square overflow-hidden rounded-lg border-2 transition-colors {selectedIds.has(
+						photo.id
+					)
+						? 'border-primary'
+						: 'border-transparent'}"
 					onclick={() => handlePhotoClick(idx, photo)}
 				>
 					<img
@@ -237,15 +431,38 @@
 					<!-- Selection checkbox -->
 					<!-- svelte-ignore a11y_interactive_supports_focus -->
 					<div
-						class="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedIds.has(photo.id) ? 'border-primary bg-primary' : 'border-white/70 bg-black/30 opacity-0 group-hover:opacity-100'}"
+						class="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedIds.has(
+							photo.id
+						)
+							? 'border-primary bg-primary'
+							: 'border-white/70 bg-black/30 opacity-0 group-hover:opacity-100'}"
 						role="checkbox"
 						aria-checked={selectedIds.has(photo.id)}
-						onclick={(e) => { e.stopPropagation(); toggleSelect(photo.id); }}
-						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); toggleSelect(photo.id); } }}
+						onclick={(e) => {
+							e.stopPropagation();
+							toggleSelect(photo.id);
+						}}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.stopPropagation();
+								e.preventDefault();
+								toggleSelect(photo.id);
+							}
+						}}
 					>
 						{#if selectedIds.has(photo.id)}
-							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-								<polyline points="20 6 9 17 4 12"/>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="white"
+								stroke-width="3"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<polyline points="20 6 9 17 4 12" />
 							</svg>
 						{/if}
 					</div>

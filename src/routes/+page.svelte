@@ -16,10 +16,16 @@
 		exif: {
 			cameraMake: string | null;
 			cameraModel: string | null;
+			lensModel?: string | null;
 			aperture: number | null;
 			shutterSpeed: string | null;
 			iso: number | null;
 			focalLength: number | null;
+			focalLength35mm?: number | null;
+			latitude?: number | null;
+			longitude?: number | null;
+			altitude?: number | null;
+			takenAt?: string | null;
 		} | null;
 	}
 

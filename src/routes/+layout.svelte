@@ -50,6 +50,9 @@
 						<a href="/admin/users" class="text-sm text-muted-foreground hover:text-foreground">
 							人員管理
 						</a>
+						<a href="/admin/backups" class="text-sm text-muted-foreground hover:text-foreground">
+							備份管理
+						</a>
 						<a href="/admin/settings" class="text-sm text-muted-foreground hover:text-foreground">
 							站點設定
 						</a>
