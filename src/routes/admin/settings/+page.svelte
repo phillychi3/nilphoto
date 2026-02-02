@@ -39,6 +39,19 @@
 	let formPublicUrl = $state('');
 	let saving = $state(false);
 
+	// Edit state
+	let showEdit = $state(false);
+	let editId = $state('');
+	let editProvider = $state<'s3' | 'r2'>('s3');
+	let editName = $state('');
+	let editIsDefault = $state(false);
+	let editBucket = $state('');
+	let editRegion = $state('');
+	let editEndpoint = $state('');
+	let editAccessKeyId = $state('');
+	let editSecretAccessKey = $state('');
+	let editPublicUrl = $state('');
+
 	onMount(async () => {
 		await Promise.all([loadSiteSettings(), loadConfigs()]);
 	});
@@ -169,6 +182,50 @@
 			testResult = { success: false, message: '測試失敗' };
 		} finally {
 			testing = null;
+		}
+	}
+
+	function openEdit(config: StorageConfig) {
+		editId = config.id;
+		editProvider = config.provider as 's3' | 'r2';
+		editName = config.name;
+		editIsDefault = config.isDefault;
+		editBucket = config.config.bucket || '';
+		editRegion = config.config.region || '';
+		editEndpoint = config.config.endpoint || '';
+		editAccessKeyId = config.config.accessKeyId || '';
+		editSecretAccessKey = '';
+		editPublicUrl = config.config.publicUrl || '';
+		showEdit = true;
+	}
+
+	async function updateConfig() {
+		if (!editName.trim() || !editBucket.trim()) return;
+		saving = true;
+		try {
+			const res = await fetch(`/api/storage-configs/${editId}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					provider: editProvider,
+					name: editName.trim(),
+					isDefault: editIsDefault,
+					config: {
+						bucket: editBucket.trim(),
+						region: editRegion.trim() || undefined,
+						endpoint: editEndpoint.trim() || undefined,
+						accessKeyId: editAccessKeyId.trim() || undefined,
+						secretAccessKey: editSecretAccessKey.trim() || undefined,
+						publicUrl: editPublicUrl.trim() || undefined
+					}
+				})
+			});
+			if (res.ok) {
+				showEdit = false;
+				await loadConfigs();
+			}
+		} finally {
+			saving = false;
 		}
 	}
 
@@ -434,6 +491,13 @@
 							<Button
 								variant="outline"
 								size="sm"
+								onclick={() => openEdit(config)}
+							>
+								編輯
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
 								onclick={() => testConnection(config.id)}
 								disabled={testing !== null}
 							>
@@ -459,3 +523,100 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Edit Storage Dialog -->
+<Dialog.Root bind:open={showEdit}>
+	<Dialog.Content class="max-w-lg">
+		<Dialog.Header>
+			<Dialog.Title>編輯儲存設定</Dialog.Title>
+			<Dialog.Description>修改儲存服務設定</Dialog.Description>
+		</Dialog.Header>
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				updateConfig();
+			}}
+			class="space-y-4"
+		>
+			<div class="grid grid-cols-2 gap-4">
+				<div class="space-y-2">
+					<Label for="edit-provider">儲存提供者</Label>
+					<select
+						id="edit-provider"
+						class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+						bind:value={editProvider}
+					>
+						<option value="s3">AWS S3</option>
+						<option value="r2">Cloudflare R2</option>
+					</select>
+				</div>
+				<div class="space-y-2">
+					<Label for="edit-name">名稱</Label>
+					<Input id="edit-name" bind:value={editName} placeholder="例如: 主要儲存" required />
+				</div>
+			</div>
+
+			<div class="space-y-2">
+				<Label for="edit-bucket">Bucket</Label>
+				<Input id="edit-bucket" bind:value={editBucket} placeholder="my-bucket" required />
+			</div>
+
+			{#if editProvider === 's3'}
+				<div class="space-y-2">
+					<Label for="edit-region">Region</Label>
+					<Input id="edit-region" bind:value={editRegion} placeholder="ap-northeast-1" />
+				</div>
+			{/if}
+
+			{#if editProvider === 'r2'}
+				<div class="space-y-2">
+					<Label for="edit-endpoint">Endpoint</Label>
+					<Input
+						id="edit-endpoint"
+						bind:value={editEndpoint}
+						placeholder="https://<account-id>.r2.cloudflarestorage.com"
+						required
+					/>
+				</div>
+			{/if}
+
+			<div class="grid grid-cols-2 gap-4">
+				<div class="space-y-2">
+					<Label for="edit-access-key">Access Key ID</Label>
+					<Input id="edit-access-key" bind:value={editAccessKeyId} placeholder="留空則不變更" />
+				</div>
+				<div class="space-y-2">
+					<Label for="edit-secret-key">Secret Access Key</Label>
+					<Input id="edit-secret-key" type="password" bind:value={editSecretAccessKey} placeholder="留空則不變更" />
+				</div>
+			</div>
+
+			<div class="space-y-2">
+				<Label for="edit-public-url">Public URL (選填)</Label>
+				<Input
+					id="edit-public-url"
+					bind:value={editPublicUrl}
+					placeholder="https://cdn.example.com"
+				/>
+				<p class="text-xs text-muted-foreground">CDN 或自訂網域 URL，用於生成公開連結</p>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<input
+					id="edit-is-default"
+					type="checkbox"
+					bind:checked={editIsDefault}
+					class="h-4 w-4 rounded border-input"
+				/>
+				<Label for="edit-is-default">設為預設儲存</Label>
+			</div>
+
+			<Dialog.Footer>
+				<Button variant="outline" onclick={() => (showEdit = false)}>取消</Button>
+				<Button type="submit" disabled={saving || !editName.trim() || !editBucket.trim()}>
+					{saving ? '儲存中...' : '儲存'}
+				</Button>
+			</Dialog.Footer>
+		</form>
+	</Dialog.Content>
+</Dialog.Root>

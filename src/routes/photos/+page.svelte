@@ -5,6 +5,8 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import Lightbox from '$lib/components/Lightbox.svelte';
+	import ContextMenu from '$lib/components/ContextMenu.svelte';
+	import DragSelect from '$lib/components/DragSelect.svelte';
 
 	interface Album {
 		id: string;
@@ -59,11 +61,19 @@
 
 	// Selection
 	let selectedIds = $state<Set<string>>(new Set());
-	let selectMode = $state(false);
+	let lastClickedIdx = $state(-1);
+
+	let selectMode = $derived(selectedIds.size > 0);
 
 	// Add to album dialog
 	let showAddAlbum = $state(false);
 	let targetAlbumId = $state('');
+
+	// Context menu
+	let ctxVisible = $state(false);
+	let ctxX = $state(0);
+	let ctxY = $state(0);
+	let ctxItems = $state<{ label: string; icon?: string; action: () => void; separator?: boolean; destructive?: boolean }[]>([]);
 
 	// Search & filters
 	let searchQuery = $state('');
@@ -178,22 +188,110 @@
 		if (next.has(id)) next.delete(id);
 		else next.add(id);
 		selectedIds = next;
-		if (next.size > 0) selectMode = true;
 	}
 
 	function selectAll() {
 		if (selectedIds.size === photos.length) {
-			selectedIds = new Set();
-			selectMode = false;
+			clearSelection();
 		} else {
 			selectedIds = new Set(photos.map((p) => p.id));
-			selectMode = true;
 		}
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
-		selectMode = false;
+		lastClickedIdx = -1;
+	}
+
+	function handlePhotoClick(idx: number, photo: Photo, e: MouseEvent) {
+		if (e.ctrlKey || e.metaKey) {
+			e.preventDefault();
+			toggleSelect(photo.id);
+			lastClickedIdx = idx;
+			return;
+		}
+		if (e.shiftKey && lastClickedIdx >= 0) {
+			e.preventDefault();
+			const start = Math.min(lastClickedIdx, idx);
+			const end = Math.max(lastClickedIdx, idx);
+			const next = new Set(selectedIds);
+			for (let i = start; i <= end; i++) {
+				next.add(photos[i].id);
+			}
+			selectedIds = next;
+			return;
+		}
+		if (selectMode) {
+			toggleSelect(photo.id);
+			lastClickedIdx = idx;
+		} else {
+			lightboxIndex = idx;
+		}
+	}
+
+	function handleContextMenu(idx: number, photo: Photo, e: MouseEvent) {
+		e.preventDefault();
+
+		if (!selectedIds.has(photo.id)) {
+			selectedIds = new Set([photo.id]);
+			lastClickedIdx = idx;
+		}
+
+		const items: typeof ctxItems = [];
+
+		items.push({
+			label: '查看',
+			icon: '🔍',
+			action: () => { lightboxIndex = idx; }
+		});
+
+		items.push({
+			label: '下載',
+			icon: '⬇',
+			action: () => downloadSelected()
+		});
+
+		items.push({
+			label: '加入相簿',
+			icon: '📁',
+			action: () => {
+				targetAlbumId = albums[0]?.id || '';
+				showAddAlbum = true;
+			},
+			separator: true
+		});
+
+		items.push({
+			label: selectedIds.size > 1 ? `刪除 ${selectedIds.size} 張` : '刪除',
+			icon: '🗑',
+			action: () => batchDelete(),
+			destructive: true,
+			separator: true
+		});
+
+		ctxItems = items;
+		ctxX = e.clientX;
+		ctxY = e.clientY;
+		ctxVisible = true;
+	}
+
+	function getPhotoUrl(
+		photo: { storagePath: string; thumbnailPath: string | null },
+		thumbnail = false
+	): string {
+		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
+		return `/uploads/${path}`;
+	}
+
+	function downloadSelected() {
+		for (const id of selectedIds) {
+			const photo = photos.find((p) => p.id === id);
+			if (!photo) continue;
+			const a = document.createElement('a');
+			a.href = getPhotoUrl(photo);
+			a.download = photo.originalFilename;
+			a.click();
+		}
 	}
 
 	async function addToAlbum() {
@@ -218,26 +316,39 @@
 		await loadPhotos();
 	}
 
-	function getPhotoUrl(
-		photo: { storagePath: string; thumbnailPath: string | null },
-		thumbnail = false
-	): string {
-		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
-		return `/uploads/${path}`;
+	function handleDragSelection(ids: string[]) {
+		if (ids.length > 0) {
+			selectedIds = new Set(ids);
+		}
 	}
 
-	function handlePhotoClick(idx: number, photo: Photo) {
-		if (selectMode) {
-			toggleSelect(photo.id);
-		} else {
-			lightboxIndex = idx;
+	function handleKeydown(e: KeyboardEvent) {
+		if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+
+		if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+			e.preventDefault();
+			selectAll();
+		} else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+			e.preventDefault();
+			if (selectedIds.size > 0) downloadSelected();
+		} else if (e.key === 'Escape') {
+			clearSelection();
+		} else if (e.key === 'Enter' && selectedIds.size > 0) {
+			const firstId = [...selectedIds][0];
+			const idx = photos.findIndex((p) => p.id === firstId);
+			if (idx >= 0) lightboxIndex = idx;
 		}
 	}
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 <svelte:head>
 	<title>所有照片 - NILPhoto</title>
 </svelte:head>
+
+<ContextMenu bind:visible={ctxVisible} x={ctxX} y={ctxY} items={ctxItems} />
+<DragSelect containerSelector=".photo-grid" onSelectionChange={handleDragSelection} />
 
 <div class="mx-auto max-w-7xl px-4 py-8">
 	<div class="mb-6 flex items-center justify-between">
@@ -384,6 +495,9 @@
 			>
 				加入相簿
 			</Button>
+			<Button variant="outline" size="sm" onclick={downloadSelected}>
+				下載
+			</Button>
 			<Button
 				variant="outline"
 				size="sm"
@@ -411,7 +525,7 @@
 		</div>
 	{:else}
 		<div
-			class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+			class="photo-grid grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
 		>
 			{#each photos as photo, idx}
 				<button
@@ -420,7 +534,9 @@
 					)
 						? 'border-primary'
 						: 'border-transparent'}"
-					onclick={() => handlePhotoClick(idx, photo)}
+					data-photo-id={photo.id}
+					onclick={(e) => handlePhotoClick(idx, photo, e)}
+					oncontextmenu={(e) => handleContextMenu(idx, photo, e)}
 				>
 					<img
 						src={getPhotoUrl(photo, true)}
