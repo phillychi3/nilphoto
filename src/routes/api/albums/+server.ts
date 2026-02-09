@@ -47,10 +47,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		if (includePrivate && locals.user.role === 'admin') {
 			whereClause = undefined;
 		} else if (includePrivate) {
-			whereClause = or(
-				eq(albums.isPublic, true),
-				eq(albums.ownerId, locals.user.id)
-			);
+			whereClause = or(eq(albums.isPublic, true), eq(albums.ownerId, locals.user.id));
 		} else {
 			whereClause = eq(albums.isPublic, true);
 		}

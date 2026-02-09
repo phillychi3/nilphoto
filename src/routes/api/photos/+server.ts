@@ -156,10 +156,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
 	// Count total matching
-	const [{ value: total }] = await db
-		.select({ value: count() })
-		.from(photos)
-		.where(whereClause);
+	const [{ value: total }] = await db.select({ value: count() }).from(photos).where(whereClause);
 
 	// Fetch matching photos
 	const matchingPhotos = await db.query.photos.findMany({

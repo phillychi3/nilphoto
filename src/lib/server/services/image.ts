@@ -49,10 +49,7 @@ export async function getImageMetadata(buffer: Buffer): Promise<ImageMetadata> {
 
 	// Check for HDR by looking at bit depth and color space
 	const depth = typeof metadata.depth === 'number' ? metadata.depth : 8;
-	const isHdr =
-		depth > 8 ||
-		metadata.space === 'rgb16' ||
-		metadata.space === 'scrgb';
+	const isHdr = depth > 8 || metadata.space === 'rgb16' || metadata.space === 'scrgb';
 
 	return {
 		width: metadata.width,

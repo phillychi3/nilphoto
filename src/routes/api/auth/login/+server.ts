@@ -3,11 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { verifyPassword } from '$lib/server/password';
-import {
-	createSession,
-	generateSessionToken,
-	setSessionTokenCookie
-} from '$lib/server/auth';
+import { createSession, generateSessionToken, setSessionTokenCookie } from '$lib/server/auth';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	const { email, password } = await request.json();

@@ -149,7 +149,7 @@
 				<div class="flex gap-4">
 					<div class="flex-1">
 						<select
-							class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+							class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 							bind:value={selectedAlbumId}
 						>
 							<option value="">不歸入相簿</option>
@@ -159,11 +159,7 @@
 						</select>
 					</div>
 					<div class="flex gap-2">
-						<Input
-							placeholder="新相簿名稱"
-							bind:value={newAlbumName}
-							class="w-40"
-						/>
+						<Input placeholder="新相簿名稱" bind:value={newAlbumName} class="w-40" />
 						<Button variant="outline" onclick={createAlbum} disabled={!newAlbumName.trim()}>
 							建立
 						</Button>
@@ -238,23 +234,29 @@
 						/>
 						<!-- Status overlay -->
 						{#if item.status === 'uploading'}
-							<div
-								class="absolute inset-0 flex items-center justify-center bg-black/50"
-							>
-								<div class="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+							<div class="absolute inset-0 flex items-center justify-center bg-black/50">
+								<div
+									class="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white"
+								></div>
 							</div>
 						{:else if item.status === 'done'}
-							<div
-								class="absolute inset-0 flex items-center justify-center bg-black/30"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-									<polyline points="20 6 9 17 4 12"/>
+							<div class="absolute inset-0 flex items-center justify-center bg-black/30">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="32"
+									height="32"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="white"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<polyline points="20 6 9 17 4 12" />
 								</svg>
 							</div>
 						{:else if item.status === 'error'}
-							<div
-								class="absolute inset-0 flex items-center justify-center bg-destructive/30"
-							>
+							<div class="absolute inset-0 flex items-center justify-center bg-destructive/30">
 								<p class="text-xs text-white">{item.error}</p>
 							</div>
 						{/if}
@@ -262,12 +264,22 @@
 						<!-- Remove button -->
 						{#if item.status === 'pending'}
 							<button
-								class="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+								class="absolute top-1 right-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
 								onclick={() => removeItem(index)}
 								aria-label="移除"
 							>
-								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-									<path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M18 6 6 18" /><path d="m6 6 12 12" />
 								</svg>
 							</button>
 						{/if}

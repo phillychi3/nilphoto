@@ -19,7 +19,12 @@
 		errorMessage: string | null;
 		createdAt: string;
 		completedAt: string | null;
-		photo: { id: string; originalFilename: string; thumbnailPath: string | null; storagePath: string };
+		photo: {
+			id: string;
+			originalFilename: string;
+			thumbnailPath: string | null;
+			storagePath: string;
+		};
 		storageConfig: { id: string; name: string; provider: string };
 	}
 
@@ -193,10 +198,22 @@
 	<div class="mb-6 flex items-center justify-between">
 		<h1 class="text-2xl font-bold">備份管理</h1>
 		<div class="flex gap-2">
-			<Button variant="outline" onclick={() => { scheduleConfigId = storageConfigs[0]?.id || ''; showScheduleDialog = true; }}>
+			<Button
+				variant="outline"
+				onclick={() => {
+					scheduleConfigId = storageConfigs[0]?.id || '';
+					showScheduleDialog = true;
+				}}
+			>
 				新增排程
 			</Button>
-			<Button onclick={() => { backupConfigId = storageConfigs[0]?.id || ''; backupResult = ''; showBackupDialog = true; }}>
+			<Button
+				onclick={() => {
+					backupConfigId = storageConfigs[0]?.id || '';
+					backupResult = '';
+					showBackupDialog = true;
+				}}
+			>
 				手動備份
 			</Button>
 		</div>
@@ -231,21 +248,23 @@
 		<div class="mb-8">
 			<h2 class="mb-3 text-lg font-semibold">備份排程</h2>
 			{#if schedules.length === 0}
-				<div class="rounded-lg border p-6 text-center text-muted-foreground">
-					尚未設定備份排程
-				</div>
+				<div class="rounded-lg border p-6 text-center text-muted-foreground">尚未設定備份排程</div>
 			{:else}
 				<div class="space-y-2">
 					{#each schedules as schedule}
 						<div class="flex items-center justify-between rounded-lg border p-3">
 							<div class="flex items-center gap-3">
 								<div
-									class="h-2 w-2 rounded-full {schedule.enabled ? 'bg-green-500' : 'bg-muted-foreground'}"
+									class="h-2 w-2 rounded-full {schedule.enabled
+										? 'bg-green-500'
+										: 'bg-muted-foreground'}"
 								></div>
 								<div>
 									<p class="text-sm font-medium">
 										{schedule.storageConfig.name}
-										<span class="ml-1 text-xs text-muted-foreground">({schedule.storageConfig.provider})</span>
+										<span class="ml-1 text-xs text-muted-foreground"
+											>({schedule.storageConfig.provider})</span
+										>
 									</p>
 									<p class="text-xs text-muted-foreground">
 										{freqLabels[schedule.frequency]} &middot; 保留 {schedule.retentionDays} 天
@@ -256,11 +275,7 @@
 								</div>
 							</div>
 							<div class="flex items-center gap-2">
-								<Button
-									variant="ghost"
-									size="sm"
-									onclick={() => toggleSchedule(schedule)}
-								>
+								<Button variant="ghost" size="sm" onclick={() => toggleSchedule(schedule)}>
 									{schedule.enabled ? '停用' : '啟用'}
 								</Button>
 								<Button
@@ -288,7 +303,10 @@
 							class="rounded-full px-3 py-1 text-xs transition-colors {statusFilter === status
 								? 'bg-primary text-primary-foreground'
 								: 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-							onclick={() => { statusFilter = status; loadBackups(); }}
+							onclick={() => {
+								statusFilter = status;
+								loadBackups();
+							}}
 						>
 							{status ? statusLabels[status] : '全部'}
 						</button>
@@ -296,9 +314,7 @@
 				</div>
 			</div>
 			{#if backupsList.length === 0}
-				<div class="rounded-lg border p-6 text-center text-muted-foreground">
-					沒有備份紀錄
-				</div>
+				<div class="rounded-lg border p-6 text-center text-muted-foreground">沒有備份紀錄</div>
 			{:else}
 				<div class="overflow-hidden rounded-lg border">
 					<table class="w-full text-sm">
@@ -322,7 +338,9 @@
 										</span>
 									</td>
 									<td class="px-4 py-2">
-										<span class="rounded-full px-2 py-0.5 text-[10px] {statusColors[backup.status]}">
+										<span
+											class="rounded-full px-2 py-0.5 text-[10px] {statusColors[backup.status]}"
+										>
 											{statusLabels[backup.status]}
 										</span>
 										{#if backup.errorMessage}

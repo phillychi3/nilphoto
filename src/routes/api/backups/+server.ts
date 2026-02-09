@@ -32,7 +32,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const [totalPhotos] = await db.select({ value: count() }).from(photos);
 
 	// List
-	const whereClause = statusFilter ? eq(backups.status, statusFilter as 'pending' | 'in_progress' | 'completed' | 'failed') : undefined;
+	const whereClause = statusFilter
+		? eq(backups.status, statusFilter as 'pending' | 'in_progress' | 'completed' | 'failed')
+		: undefined;
 
 	const backupList = await db.query.backups.findMany({
 		where: whereClause,
@@ -105,12 +107,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const alreadyBacked = await db
 			.select({ photoId: backups.photoId })
 			.from(backups)
-			.where(
-				and(
-					eq(backups.storageConfigId, storageConfigId),
-					eq(backups.status, 'completed')
-				)
-			);
+			.where(and(eq(backups.storageConfigId, storageConfigId), eq(backups.status, 'completed')));
 		const backedIds = new Set(alreadyBacked.map((b) => b.photoId));
 
 		const allPhotos = await db.query.photos.findMany({
@@ -135,7 +132,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	// Process backups in background (simplified - in production use a queue)
 	processBackups(storageConfigId, targetPhotos).catch(console.error);
 
-	return json({ message: `已排程 ${targetPhotos.length} 張照片備份`, created: targetPhotos.length }, { status: 201 });
+	return json(
+		{ message: `已排程 ${targetPhotos.length} 張照片備份`, created: targetPhotos.length },
+		{ status: 201 }
+	);
 };
 
 async function processBackups(
@@ -157,10 +157,7 @@ async function processBackups(
 		if (!backupRecord) continue;
 
 		// Mark as in_progress
-		await db
-			.update(backups)
-			.set({ status: 'in_progress' })
-			.where(eq(backups.id, backupRecord.id));
+		await db.update(backups).set({ status: 'in_progress' }).where(eq(backups.id, backupRecord.id));
 
 		try {
 			const data = await sourceStorage.download(photo.storagePath);

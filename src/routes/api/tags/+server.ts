@@ -33,10 +33,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	try {
-		const [newTag] = await db
-			.insert(tags)
-			.values({ name: name.trim() })
-			.returning();
+		const [newTag] = await db.insert(tags).values({ name: name.trim() }).returning();
 
 		return json({ tag: newTag }, { status: 201 });
 	} catch {

@@ -73,7 +73,15 @@
 	let ctxVisible = $state(false);
 	let ctxX = $state(0);
 	let ctxY = $state(0);
-	let ctxItems = $state<{ label: string; icon?: string; action: () => void; separator?: boolean; destructive?: boolean }[]>([]);
+	let ctxItems = $state<
+		{
+			label: string;
+			icon?: string;
+			action: () => void;
+			separator?: boolean;
+			destructive?: boolean;
+		}[]
+	>([]);
 
 	// Search & filters
 	let searchQuery = $state('');
@@ -85,7 +93,9 @@
 	let filterIsoMax = $state('');
 	let filterTag = $state('');
 	let activeFilterCount = $derived(
-		[filterCamera, filterDateFrom, filterDateTo, filterIsoMin, filterIsoMax, filterTag].filter(Boolean).length
+		[filterCamera, filterDateFrom, filterDateTo, filterIsoMin, filterIsoMax, filterTag].filter(
+			Boolean
+		).length
 	);
 	let isSearching = $derived(!!searchQuery || activeFilterCount > 0);
 
@@ -242,7 +252,9 @@
 		items.push({
 			label: '查看',
 			icon: '🔍',
-			action: () => { lightboxIndex = idx; }
+			action: () => {
+				lightboxIndex = idx;
+			}
 		});
 
 		items.push({
@@ -323,7 +335,11 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+		if (
+			(e.target as HTMLElement).tagName === 'INPUT' ||
+			(e.target as HTMLElement).tagName === 'TEXTAREA'
+		)
+			return;
 
 		if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
 			e.preventDefault();
@@ -389,15 +405,11 @@
 					stroke-width="2"
 					stroke-linecap="round"
 					stroke-linejoin="round"
-					class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+					class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
 				>
 					<circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
 				</svg>
-				<Input
-					bind:value={searchQuery}
-					placeholder="搜尋標題、描述、檔名..."
-					class="pl-9"
-				/>
+				<Input bind:value={searchQuery} placeholder="搜尋標題、描述、檔名..." class="pl-9" />
 			</div>
 			<Button type="submit" variant="outline">搜尋</Button>
 			<Button
@@ -495,9 +507,7 @@
 			>
 				加入相簿
 			</Button>
-			<Button variant="outline" size="sm" onclick={downloadSelected}>
-				下載
-			</Button>
+			<Button variant="outline" size="sm" onclick={downloadSelected}>下載</Button>
 			<Button
 				variant="outline"
 				size="sm"
@@ -547,7 +557,7 @@
 					<!-- Selection checkbox -->
 					<!-- svelte-ignore a11y_interactive_supports_focus -->
 					<div
-						class="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedIds.has(
+						class="absolute top-1.5 left-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedIds.has(
 							photo.id
 						)
 							? 'border-primary bg-primary'
@@ -584,7 +594,7 @@
 					</div>
 					<!-- Album badges -->
 					{#if photo.albums && photo.albums.length > 0}
-						<div class="absolute bottom-1 right-1 flex gap-0.5">
+						<div class="absolute right-1 bottom-1 flex gap-0.5">
 							{#each photo.albums.slice(0, 2) as album}
 								<span class="rounded bg-black/60 px-1 py-0.5 text-[9px] text-white">
 									{album.name}

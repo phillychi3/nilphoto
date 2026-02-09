@@ -1,6 +1,12 @@
 import { mkdir, writeFile, readFile, unlink, access } from 'fs/promises';
 import { dirname, join } from 'path';
-import type { StorageAdapter, LocalConfig, UploadOptions, UploadResult, UrlOptions } from '../types';
+import type {
+	StorageAdapter,
+	LocalConfig,
+	UploadOptions,
+	UploadResult,
+	UrlOptions
+} from '../types';
 
 /**
  * 本地檔案系統儲存 Adapter

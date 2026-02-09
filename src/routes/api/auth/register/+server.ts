@@ -14,12 +14,11 @@ async function getRegistrationMode(): Promise<RegistrationMode> {
 	return (setting?.value as RegistrationMode) || 'open';
 }
 
-async function validateInviteCode(code: string): Promise<{ valid: boolean; codeId?: string; error?: string }> {
+async function validateInviteCode(
+	code: string
+): Promise<{ valid: boolean; codeId?: string; error?: string }> {
 	const inviteCode = await db.query.inviteCodes.findFirst({
-		where: and(
-			eq(inviteCodes.code, code),
-			eq(inviteCodes.isActive, true)
-		)
+		where: and(eq(inviteCodes.code, code), eq(inviteCodes.isActive, true))
 	});
 
 	if (!inviteCode) {
@@ -105,7 +104,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		await db
 			.update(inviteCodes)
-			.set({ usedCount: (await db.query.inviteCodes.findFirst({ where: eq(inviteCodes.id, validatedInviteCodeId) }))!.usedCount! + 1 })
+			.set({
+				usedCount:
+					(await db.query.inviteCodes.findFirst({
+						where: eq(inviteCodes.id, validatedInviteCodeId)
+					}))!.usedCount! + 1
+			})
 			.where(eq(inviteCodes.id, validatedInviteCodeId));
 	}
 

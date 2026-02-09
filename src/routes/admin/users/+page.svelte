@@ -123,9 +123,7 @@
 			<div class="py-8 text-center text-muted-foreground">載入中...</div>
 		{:else if users.length === 0}
 			<Card.Root>
-				<Card.Content class="py-8 text-center text-muted-foreground">
-					尚無使用者
-				</Card.Content>
+				<Card.Content class="py-8 text-center text-muted-foreground">尚無使用者</Card.Content>
 			</Card.Root>
 		{:else}
 			<div class="space-y-2">
@@ -204,9 +202,7 @@
 			<div class="py-8 text-center text-muted-foreground">載入中...</div>
 		{:else if codes.length === 0}
 			<Card.Root>
-				<Card.Content class="py-8 text-center text-muted-foreground">
-					尚無邀請碼
-				</Card.Content>
+				<Card.Content class="py-8 text-center text-muted-foreground">尚無邀請碼</Card.Content>
 			</Card.Root>
 		{:else}
 			<div class="space-y-2">
@@ -215,19 +211,25 @@
 						<div class="flex items-center justify-between p-4">
 							<div>
 								<div class="flex items-center gap-2">
-									<code class="rounded bg-muted px-2 py-0.5 text-sm font-mono">
+									<code class="rounded bg-muted px-2 py-0.5 font-mono text-sm">
 										{code.code}
 									</code>
 									{#if !code.isActive}
-										<span class="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+										<span
+											class="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
+										>
 											已停用
 										</span>
 									{:else if isExpired(code)}
-										<span class="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive">
+										<span
+											class="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive"
+										>
 											已過期
 										</span>
 									{:else}
-										<span class="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] text-green-500">
+										<span
+											class="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] text-green-500"
+										>
 											有效
 										</span>
 									{/if}

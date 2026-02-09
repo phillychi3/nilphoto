@@ -308,14 +308,19 @@
 				<div class="space-y-2">
 					{#each albums as album}
 						<button
-							class="w-full rounded-lg border p-3 text-left transition-colors {selectedAlbum?.id === album.id ? 'border-primary bg-primary/5' : 'border-border hover:border-foreground/20'}"
+							class="w-full rounded-lg border p-3 text-left transition-colors {selectedAlbum?.id ===
+							album.id
+								? 'border-primary bg-primary/5'
+								: 'border-border hover:border-foreground/20'}"
 							onclick={() => openAlbumDetail(album)}
 						>
 							<div class="flex items-center justify-between">
 								<span class="text-sm font-medium">{album.name}</span>
 								<div class="flex items-center gap-1">
 									{#if album.isSystem}
-										<span class="rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-500">
+										<span
+											class="rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] text-blue-500"
+										>
 											系統
 										</span>
 									{/if}
@@ -379,11 +384,11 @@
 
 				<!-- Batch Actions -->
 				{#if selectedPhotoIds.size > 0}
-					<div class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2">
+					<div
+						class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2"
+					>
 						<span class="text-sm">已選取 {selectedPhotoIds.size} 張</span>
-						<Button variant="outline" size="sm" onclick={batchRemoveFromAlbum}>
-							從相簿移除
-						</Button>
+						<Button variant="outline" size="sm" onclick={batchRemoveFromAlbum}>從相簿移除</Button>
 						<Button
 							variant="outline"
 							size="sm"
@@ -392,9 +397,7 @@
 						>
 							永久刪除
 						</Button>
-						<Button variant="outline" size="sm" onclick={openTagDialog}>
-							管理標籤
-						</Button>
+						<Button variant="outline" size="sm" onclick={openTagDialog}>管理標籤</Button>
 						<Button variant="ghost" size="sm" onclick={() => (selectedPhotoIds = new Set())}>
 							取消選取
 						</Button>
@@ -419,7 +422,11 @@
 					<div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
 						{#each albumPhotos as photo}
 							<button
-								class="group relative aspect-square overflow-hidden rounded-lg border-2 transition-colors {selectedPhotoIds.has(photo.id) ? 'border-primary' : 'border-transparent'}"
+								class="group relative aspect-square overflow-hidden rounded-lg border-2 transition-colors {selectedPhotoIds.has(
+									photo.id
+								)
+									? 'border-primary'
+									: 'border-transparent'}"
 								onclick={() => togglePhotoSelect(photo.id)}
 							>
 								<img
@@ -430,7 +437,11 @@
 								/>
 								<!-- Selection indicator -->
 								<div
-									class="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPhotoIds.has(photo.id) ? 'border-primary bg-primary' : 'border-white/70 bg-black/30 opacity-0 group-hover:opacity-100'}"
+									class="absolute top-1.5 left-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 {selectedPhotoIds.has(
+										photo.id
+									)
+										? 'border-primary bg-primary'
+										: 'border-white/70 bg-black/30 opacity-0 group-hover:opacity-100'}"
 								>
 									{#if selectedPhotoIds.has(photo.id)}
 										<svg
@@ -450,7 +461,9 @@
 								</div>
 								<!-- Cover badge -->
 								{#if photo.id === selectedAlbum?.coverPhotoId}
-									<div class="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white">
+									<div
+										class="absolute right-1 bottom-1 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
+									>
 										封面
 									</div>
 								{/if}
@@ -498,7 +511,11 @@
 			<div class="flex flex-wrap gap-2">
 				{#each allTags as tag}
 					<button
-						class="rounded-full border px-3 py-1 text-sm transition-colors {selectedTagIds.has(tag.id) ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-foreground/20'}"
+						class="rounded-full border px-3 py-1 text-sm transition-colors {selectedTagIds.has(
+							tag.id
+						)
+							? 'border-primary bg-primary/10 text-primary'
+							: 'border-border text-muted-foreground hover:border-foreground/20'}"
 						onclick={() => {
 							const next = new Set(selectedTagIds);
 							if (next.has(tag.id)) next.delete(tag.id);

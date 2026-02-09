@@ -105,8 +105,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		if (coverPhotoId !== null) {
 			// Validate cover photo is in this album
 			const link = await db.query.albumPhotos.findFirst({
-				where: (ap, { and, eq }) =>
-					and(eq(ap.albumId, id!), eq(ap.photoId, coverPhotoId))
+				where: (ap, { and, eq }) => and(eq(ap.albumId, id!), eq(ap.photoId, coverPhotoId))
 			});
 			if (!link) {
 				return json({ error: '封面圖片不存在於此相簿' }, { status: 400 });

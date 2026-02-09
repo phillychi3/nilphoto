@@ -313,7 +313,7 @@
 							<Label for="provider">儲存提供者</Label>
 							<select
 								id="provider"
-								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 								bind:value={formProvider}
 							>
 								<option value="s3">AWS S3</option>
@@ -322,12 +322,7 @@
 						</div>
 						<div class="space-y-2">
 							<Label for="config-name">名稱</Label>
-							<Input
-								id="config-name"
-								bind:value={formName}
-								placeholder="例如: 主要儲存"
-								required
-							/>
+							<Input id="config-name" bind:value={formName} placeholder="例如: 主要儲存" required />
 						</div>
 					</div>
 
@@ -362,12 +357,7 @@
 						</div>
 						<div class="space-y-2">
 							<Label for="secret-key">Secret Access Key</Label>
-							<Input
-								id="secret-key"
-								type="password"
-								bind:value={formSecretAccessKey}
-								required
-							/>
+							<Input id="secret-key" type="password" bind:value={formSecretAccessKey} required />
 						</div>
 					</div>
 
@@ -424,8 +414,7 @@
 				</div>
 				<div>
 					<p class="text-sm font-medium">
-						目前使用：{configs.find((c) => c.isDefault)?.name ||
-							'本地儲存 (data/uploads)'}
+						目前使用：{configs.find((c) => c.isDefault)?.name || '本地儲存 (data/uploads)'}
 					</p>
 					<p class="text-xs text-muted-foreground">
 						{configs.find((c) => c.isDefault)
@@ -458,15 +447,11 @@
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
 								<span class="text-sm font-medium">{config.name}</span>
-								<span
-									class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
-								>
+								<span class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
 									{providerLabel(config.provider)}
 								</span>
 								{#if config.isDefault}
-									<span
-										class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
-									>
+									<span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
 										預設
 									</span>
 								{/if}
@@ -480,21 +465,11 @@
 						</div>
 						<div class="flex items-center gap-2">
 							{#if testResult && testing === null}
-								<span
-									class="text-xs {testResult.success
-										? 'text-green-500'
-										: 'text-destructive'}"
-								>
+								<span class="text-xs {testResult.success ? 'text-green-500' : 'text-destructive'}">
 									{testResult.message}
 								</span>
 							{/if}
-							<Button
-								variant="outline"
-								size="sm"
-								onclick={() => openEdit(config)}
-							>
-								編輯
-							</Button>
+							<Button variant="outline" size="sm" onclick={() => openEdit(config)}>編輯</Button>
 							<Button
 								variant="outline"
 								size="sm"
@@ -543,7 +518,7 @@
 					<Label for="edit-provider">儲存提供者</Label>
 					<select
 						id="edit-provider"
-						class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+						class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						bind:value={editProvider}
 					>
 						<option value="s3">AWS S3</option>
@@ -587,7 +562,12 @@
 				</div>
 				<div class="space-y-2">
 					<Label for="edit-secret-key">Secret Access Key</Label>
-					<Input id="edit-secret-key" type="password" bind:value={editSecretAccessKey} placeholder="留空則不變更" />
+					<Input
+						id="edit-secret-key"
+						type="password"
+						bind:value={editSecretAccessKey}
+						placeholder="留空則不變更"
+					/>
 				</div>
 			</div>
 

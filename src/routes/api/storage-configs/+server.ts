@@ -46,7 +46,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	// Validate config fields based on provider
 	if (provider === 's3' || provider === 'r2') {
 		if (!config.bucket || !config.accessKeyId || !config.secretAccessKey) {
-			return json({ error: '缺少 S3/R2 必要設定 (bucket, accessKeyId, secretAccessKey)' }, { status: 400 });
+			return json(
+				{ error: '缺少 S3/R2 必要設定 (bucket, accessKeyId, secretAccessKey)' },
+				{ status: 400 }
+			);
 		}
 		if (provider === 'r2' && !config.endpoint) {
 			return json({ error: 'R2 需要設定 endpoint' }, { status: 400 });

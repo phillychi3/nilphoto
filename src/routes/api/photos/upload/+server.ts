@@ -3,11 +3,7 @@ import { db } from '$lib/server/db';
 import { photos, photoExif, albums, albumPhotos } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { getStorage, generateStorageKey } from '$lib/server/storage';
-import {
-	processImage,
-	isValidImageType,
-	MAX_FILE_SIZE
-} from '$lib/server/services/image';
+import { processImage, isValidImageType, MAX_FILE_SIZE } from '$lib/server/services/image';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {

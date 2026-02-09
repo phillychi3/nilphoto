@@ -47,7 +47,8 @@ async function seed() {
 	}
 
 	// Create featured system album
-	const user = existingUser || (await db.query.users.findFirst({ where: eq(schema.users.email, 'test') }));
+	const user =
+		existingUser || (await db.query.users.findFirst({ where: eq(schema.users.email, 'test') }));
 
 	const existingFeatured = await db.query.albums.findFirst({
 		where: eq(schema.albums.isSystem, true)

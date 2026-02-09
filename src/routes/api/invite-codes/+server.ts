@@ -35,9 +35,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			code,
 			createdBy: locals.user.id,
 			maxUses: maxUses || 1,
-			expiresAt: expiresInDays
-				? new Date(Date.now() + expiresInDays * 86400000)
-				: null
+			expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * 86400000) : null
 		})
 		.returning();
 
@@ -52,10 +50,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 
 	const { codeId } = await request.json();
 
-	await db
-		.update(inviteCodes)
-		.set({ isActive: false })
-		.where(eq(inviteCodes.id, codeId));
+	await db.update(inviteCodes).set({ isActive: false }).where(eq(inviteCodes.id, codeId));
 
 	return json({ success: true });
 };

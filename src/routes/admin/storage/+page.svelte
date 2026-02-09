@@ -132,10 +132,14 @@
 
 	function providerLabel(provider: string): string {
 		switch (provider) {
-			case 's3': return 'AWS S3';
-			case 'r2': return 'Cloudflare R2';
-			case 'github': return 'GitHub';
-			default: return provider;
+			case 's3':
+				return 'AWS S3';
+			case 'r2':
+				return 'Cloudflare R2';
+			case 'github':
+				return 'GitHub';
+			default:
+				return provider;
 		}
 	}
 </script>
@@ -148,9 +152,7 @@
 	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="text-2xl font-bold">儲存服務設定</h1>
-			<p class="mt-1 text-sm text-muted-foreground">
-				管理圖片儲存位置。未設定時預設使用本地儲存。
-			</p>
+			<p class="mt-1 text-sm text-muted-foreground">管理圖片儲存位置。未設定時預設使用本地儲存。</p>
 		</div>
 		<Dialog.Root bind:open={showCreate}>
 			<Dialog.Trigger>
@@ -175,7 +177,7 @@
 							<Label for="provider">儲存提供者</Label>
 							<select
 								id="provider"
-								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 								bind:value={formProvider}
 							>
 								<option value="s3">AWS S3</option>
@@ -230,9 +232,7 @@
 							bind:value={formPublicUrl}
 							placeholder="https://cdn.example.com"
 						/>
-						<p class="text-xs text-muted-foreground">
-							CDN 或自訂網域 URL，用於生成公開連結
-						</p>
+						<p class="text-xs text-muted-foreground">CDN 或自訂網域 URL，用於生成公開連結</p>
 					</div>
 
 					<div class="flex items-center gap-2">
@@ -260,8 +260,20 @@
 		<Card.Content class="p-4">
 			<div class="flex items-center gap-3">
 				<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path
+							d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"
+						/>
 					</svg>
 				</div>
 				<div>
@@ -286,7 +298,9 @@
 		<Card.Root>
 			<Card.Content class="flex flex-col items-center justify-center py-12">
 				<p class="text-muted-foreground">尚未設定雲端儲存服務</p>
-				<p class="mt-1 text-sm text-muted-foreground">目前圖片會儲存在伺服器本地 static/uploads 目錄</p>
+				<p class="mt-1 text-sm text-muted-foreground">
+					目前圖片會儲存在伺服器本地 static/uploads 目錄
+				</p>
 			</Card.Content>
 		</Card.Root>
 	{:else}
@@ -315,11 +329,7 @@
 						</div>
 						<div class="flex items-center gap-2">
 							{#if testResult && testing === null}
-								<span
-									class="text-xs {testResult.success
-										? 'text-green-500'
-										: 'text-destructive'}"
-								>
+								<span class="text-xs {testResult.success ? 'text-green-500' : 'text-destructive'}">
 									{testResult.message}
 								</span>
 							{/if}

@@ -6,7 +6,14 @@ import { LocalAdapter } from './adapters/local';
 import type { StorageAdapter } from './types';
 
 // 導出類型
-export type { StorageAdapter, UploadOptions, UploadResult, UrlOptions, S3Config, LocalConfig } from './types';
+export type {
+	StorageAdapter,
+	UploadOptions,
+	UploadResult,
+	UrlOptions,
+	S3Config,
+	LocalConfig
+} from './types';
 
 // 導出 Adapter 類別
 export { S3Adapter } from './adapters/s3';
