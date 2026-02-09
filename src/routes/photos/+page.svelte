@@ -495,28 +495,32 @@
 
 	<!-- Batch actions bar -->
 	{#if selectedIds.size > 0}
-		<div class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+		<div
+			class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3"
+		>
 			<span class="text-sm font-medium">已選取 {selectedIds.size} 張</span>
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => {
-					targetAlbumId = albums[0]?.id || '';
-					showAddAlbum = true;
-				}}
-			>
-				加入相簿
-			</Button>
-			<Button variant="outline" size="sm" onclick={downloadSelected}>下載</Button>
-			<Button
-				variant="outline"
-				size="sm"
-				class="text-destructive hover:text-destructive"
-				onclick={batchDelete}
-			>
-				永久刪除
-			</Button>
-			<Button variant="ghost" size="sm" onclick={clearSelection}>取消</Button>
+			<div class="flex flex-wrap gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					onclick={() => {
+						targetAlbumId = albums[0]?.id || '';
+						showAddAlbum = true;
+					}}
+				>
+					加入相簿
+				</Button>
+				<Button variant="outline" size="sm" onclick={downloadSelected}>下載</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					class="text-destructive hover:text-destructive"
+					onclick={batchDelete}
+				>
+					永久刪除
+				</Button>
+				<Button variant="ghost" size="sm" onclick={clearSelection}>取消</Button>
+			</div>
 		</div>
 	{/if}
 

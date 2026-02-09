@@ -3,6 +3,12 @@
 
 	let currentPath = $derived($page.url.pathname);
 
+	interface Props {
+		onNavigate?: () => void;
+	}
+
+	let { onNavigate }: Props = $props();
+
 	const links = [
 		{ href: '/upload', label: '上傳' },
 		{ href: '/photos', label: '所有照片' },
@@ -18,6 +24,7 @@
 	{#each links as link}
 		<a
 			href={link.href}
+			onclick={() => onNavigate?.()}
 			class="rounded-md px-3 py-2 text-sm transition-colors {currentPath === link.href ||
 			currentPath.startsWith(link.href + '/')
 				? 'bg-accent font-medium text-accent-foreground'

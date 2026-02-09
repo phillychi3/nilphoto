@@ -146,7 +146,7 @@
 				<Card.Title>選擇相簿</Card.Title>
 			</Card.Header>
 			<Card.Content>
-				<div class="flex gap-4">
+				<div class="flex flex-col gap-4 sm:flex-row">
 					<div class="flex-1">
 						<select
 							class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -159,7 +159,11 @@
 						</select>
 					</div>
 					<div class="flex gap-2">
-						<Input placeholder="新相簿名稱" bind:value={newAlbumName} class="w-40" />
+						<Input
+							placeholder="新相簿名稱"
+							bind:value={newAlbumName}
+							class="flex-1 sm:w-40 sm:flex-initial"
+						/>
 						<Button variant="outline" onclick={createAlbum} disabled={!newAlbumName.trim()}>
 							建立
 						</Button>

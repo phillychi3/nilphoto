@@ -4,6 +4,7 @@
 	import Lightbox from '$lib/components/Lightbox.svelte';
 	import ContextMenu from '$lib/components/ContextMenu.svelte';
 	import DragSelect from '$lib/components/DragSelect.svelte';
+	import * as Drawer from '$lib/components/ui/drawer';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Check from '@lucide/svelte/icons/check';
 
@@ -56,8 +57,8 @@
 	let sliderIndex = $derived(
 		Math.max(0, columnValues.indexOf(columnCount as (typeof columnValues)[number]))
 	);
-	let showDisplayPanel = $state(false);
-	let displayPanelRef = $state<HTMLElement | null>(null);
+	let showDesktopPanel = $state(false);
+	let showMobileDrawer = $state(false);
 	let sortBy = $state<'default' | 'date-asc' | 'date-desc' | 'name'>('default');
 
 	function setColumnFromSlider(index: number) {
@@ -126,7 +127,7 @@
 
 	let sortedPhotos = $derived.by(() => {
 		const arr = [...photos];
-		console.log('before:', arr.map((p) => p.originalFilename).join(', '));
+
 		let sorted: Photo[];
 		switch (sortBy) {
 			case 'date-asc':
@@ -141,7 +142,7 @@
 			default:
 				sorted = arr;
 		}
-		console.log('after:', sorted.map((p) => p.originalFilename).join(', '));
+
 		return sorted;
 	});
 
@@ -283,9 +284,11 @@
 		}
 	}
 
+	let panelContainerRef = $state<HTMLElement | null>(null);
+
 	function handleWindowClick(e: MouseEvent) {
-		if (showDisplayPanel && displayPanelRef && !displayPanelRef.contains(e.target as Node)) {
-			showDisplayPanel = false;
+		if (showDesktopPanel && panelContainerRef && !panelContainerRef.contains(e.target as Node)) {
+			showDesktopPanel = false;
 		}
 	}
 
@@ -337,19 +340,22 @@
 				<h1 class="text-lg font-bold tracking-tight">{album.name}</h1>
 				<span class="text-sm text-muted-foreground">{photos.length}</span>
 			</div>
-			<div class="relative" bind:this={displayPanelRef}>
+			<div class="relative" bind:this={panelContainerRef}>
 				<button
-					class="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent {showDisplayPanel
+					class="hidden items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent md:flex {showDesktopPanel
 						? 'border-primary text-primary'
 						: 'border-border text-muted-foreground'}"
-					onclick={() => (showDisplayPanel = !showDisplayPanel)}
+					onclick={() => (showDesktopPanel = !showDesktopPanel)}
 				>
 					<LayoutGrid size={14} />
 					顯示設定
 				</button>
-				{#if showDisplayPanel}
+				{#if showDesktopPanel}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<div
 						class="absolute top-full right-0 z-50 mt-2 w-64 rounded-xl border bg-popover p-0 shadow-xl"
+						onclick={(e) => e.stopPropagation()}
 					>
 						<div class="px-4 pt-4 pb-2">
 							<h3 class="text-sm font-semibold text-popover-foreground">檢視設定</h3>
@@ -398,6 +404,72 @@
 						</div>
 					</div>
 				{/if}
+
+				<Drawer.Root bind:open={showMobileDrawer}>
+					<Drawer.Trigger class="md:hidden">
+						<button
+							class="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
+						>
+							<LayoutGrid size={14} />
+							顯示設定
+						</button>
+					</Drawer.Trigger>
+					<Drawer.Content class="md:hidden">
+						<div class="mx-auto w-full max-w-md">
+							<Drawer.Header>
+								<Drawer.Title>檢視設定</Drawer.Title>
+							</Drawer.Header>
+							<div class="p-4 pb-8">
+								<div class="mb-6">
+									<p class="mb-2 text-sm font-medium">排序模式</p>
+									<div class="space-y-1">
+										{#each [{ value: 'date-desc', label: '最新優先', icon: '↓' }, { value: 'date-asc', label: '最早優先', icon: '↑' }, { value: 'name', label: '檔名排序', icon: 'A' }] as opt}
+											<button
+												class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-accent {sortBy ===
+												opt.value
+													? 'bg-accent'
+													: ''}"
+												onclick={() => {
+													sortBy = opt.value as typeof sortBy;
+												}}
+											>
+												<span class="w-4 text-center text-xs text-muted-foreground">{opt.icon}</span
+												>
+												<span class="flex-1 text-left">{opt.label}</span>
+												{#if sortBy === opt.value}
+													<Check size={18} />
+												{/if}
+											</button>
+										{/each}
+									</div>
+								</div>
+
+								<div>
+									<p class="mb-2 text-sm font-medium">欄位設定</p>
+									<input
+										type="range"
+										min="0"
+										max="6"
+										step="1"
+										value={sliderIndex}
+										oninput={(e) => setColumnFromSlider(parseInt(e.currentTarget.value))}
+										class="my-3 w-full accent-primary"
+									/>
+									<div class="flex justify-between text-xs text-muted-foreground">
+										{#each ['自動', '3', '4', '5', '6', '7', '8'] as label, i}
+											<span class={sliderIndex === i ? 'font-bold text-foreground' : ''}
+												>{label}</span
+											>
+										{/each}
+									</div>
+									<p class="mt-4 text-center text-sm">
+										{columnCount === 0 ? '自動調整' : `${columnCount} 列顯示`}
+									</p>
+								</div>
+							</div>
+						</div>
+					</Drawer.Content>
+				</Drawer.Root>
 			</div>
 		</nav>
 	</header>
@@ -443,7 +515,7 @@
 			<div class="photo-grid {columnClass} gap-1" style={columnStyle}>
 				{#each sortedPhotos as photo, idx (photo.id)}
 					<button
-						class="mb-4 block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-lg border-2 transition-colors {selectedIds.has(
+						class="mb-1 block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-lg border-2 transition-colors {selectedIds.has(
 							photo.id
 						)
 							? 'border-primary'

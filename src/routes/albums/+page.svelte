@@ -293,9 +293,32 @@
 		</Dialog.Root>
 	</div>
 
-	<div class="flex gap-6">
-		<!-- Album List -->
-		<div class="w-80 shrink-0">
+	<div class="flex flex-col gap-6 md:flex-row">
+		<div class="md:hidden">
+			{#if albums.length > 0}
+				<select
+					class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					value={selectedAlbum?.id || ''}
+					onchange={(e) => {
+						const value = e.currentTarget.value;
+						if (!value) return;
+						const album = albums.find((a) => a.id === value);
+						if (album) openAlbumDetail(album);
+					}}
+				>
+					<option value="">選擇相簿</option>
+					{#each albums as album}
+						<option value={album.id}>
+							{album.name}
+							{#if album.isSystem}(系統){/if}
+							{#if album.isPublic}[公開]{:else}[私人]{/if}
+						</option>
+					{/each}
+				</select>
+			{/if}
+		</div>
+
+		<div class="hidden w-80 shrink-0 md:block">
 			{#if loading}
 				<div class="flex justify-center py-20">
 					<div class="text-muted-foreground">載入中...</div>
