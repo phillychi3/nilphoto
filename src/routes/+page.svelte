@@ -45,7 +45,10 @@
 		}
 	});
 
-	function getPhotoUrl(photo: { storagePath: string; thumbnailPath: string | null }, thumbnail = false): string {
+	function getPhotoUrl(
+		photo: { storagePath: string; thumbnailPath: string | null },
+		thumbnail = false
+	): string {
 		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
 		return `/uploads/${path}`;
 	}
@@ -55,12 +58,7 @@
 	<title>NILPhoto</title>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-8">
-	<div class="mb-8">
-		<h1 class="text-3xl font-bold">NILPhoto</h1>
-		<p class="mt-2 text-muted-foreground">精選照片</p>
-	</div>
-
+<div class="mx-auto px-4 py-4">
 	{#if loading}
 		<div class="flex justify-center py-20">
 			<div class="text-muted-foreground">載入中...</div>
@@ -70,10 +68,10 @@
 			<p class="text-muted-foreground">目前沒有精選照片</p>
 		</div>
 	{:else}
-		<div class="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
+		<div class="columns-1 gap-2 sm:columns-2 lg:columns-3 xl:columns-4">
 			{#each photos as photo, idx}
 				<button
-					class="mb-4 block w-full cursor-zoom-in overflow-hidden rounded-lg break-inside-avoid"
+					class="mb-4 block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-lg"
 					onclick={() => (lightboxIndex = idx)}
 				>
 					<div class="group relative">

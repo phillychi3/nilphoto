@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import Lightbox from '$lib/components/Lightbox.svelte';
 	import ContextMenu from '$lib/components/ContextMenu.svelte';
 	import DragSelect from '$lib/components/DragSelect.svelte';
+	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+	import Check from '@lucide/svelte/icons/check';
 
 	interface Photo {
 		id: string;
@@ -49,29 +51,46 @@
 	let error = $state('');
 	let lightboxIndex = $state(-1);
 
-	// Column count & display settings
+	const columnValues = [0, 3, 4, 5, 6, 7, 8] as const;
 	let columnCount = $state(0); // 0 = auto
+	let sliderIndex = $derived(
+		Math.max(0, columnValues.indexOf(columnCount as (typeof columnValues)[number]))
+	);
 	let showDisplayPanel = $state(false);
+	let displayPanelRef = $state<HTMLElement | null>(null);
 	let sortBy = $state<'default' | 'date-asc' | 'date-desc' | 'name'>('default');
 
-	// Selection
+	function setColumnFromSlider(index: number) {
+		columnCount = columnValues[index];
+		if (columnCount === 0) {
+			localStorage.removeItem('nilphoto-columns');
+		} else {
+			localStorage.setItem('nilphoto-columns', String(columnCount));
+		}
+	}
+
 	let selectedIds = $state<Set<string>>(new Set());
 	let lastClickedIdx = $state(-1);
 
-	// Context menu
 	let ctxVisible = $state(false);
 	let ctxX = $state(0);
 	let ctxY = $state(0);
-	let ctxItems = $state<{ label: string; icon?: string; action: () => void; separator?: boolean; destructive?: boolean }[]>([]);
+	let ctxItems = $state<
+		{
+			label: string;
+			action: () => void;
+			separator?: boolean;
+			destructive?: boolean;
+		}[]
+	>([]);
 
-	// Share mode detection
-	let isSharedView = $derived(!!$page.url.searchParams.get('token'));
+	let isSharedView = $derived(!!page.url.searchParams.get('token'));
 
 	let selectMode = $derived(selectedIds.size > 0);
 
 	onMount(async () => {
-		const albumId = $page.params.id;
-		const token = $page.url.searchParams.get('token');
+		const albumId = page.params.id;
+		const token = page.url.searchParams.get('token');
 		const url = `/api/albums/${albumId}${token ? `?token=${token}` : ''}`;
 
 		try {
@@ -91,29 +110,39 @@
 			loading = false;
 		}
 
-		// Restore column preference
 		const saved = localStorage.getItem('nilphoto-columns');
 		if (saved) columnCount = parseInt(saved);
 	});
 
+	let columnStyle = $derived(columnCount === 0 ? '' : `column-count: ${columnCount}`);
+
 	let columnClass = $derived(
-		columnCount === 0
-			? 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4'
-			: `columns-${columnCount}`
+		columnCount === 0 ? 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4' : ''
 	);
+
+	function getPhotoDate(photo: Photo): string {
+		return photo.exif?.takenAt ?? photo.createdAt ?? '';
+	}
 
 	let sortedPhotos = $derived.by(() => {
 		const arr = [...photos];
+		console.log('before:', arr.map((p) => p.originalFilename).join(', '));
+		let sorted: Photo[];
 		switch (sortBy) {
 			case 'date-asc':
-				return arr.sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
+				sorted = arr.sort((a, b) => getPhotoDate(a).localeCompare(getPhotoDate(b)));
+				break;
 			case 'date-desc':
-				return arr.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+				sorted = arr.sort((a, b) => getPhotoDate(b).localeCompare(getPhotoDate(a)));
+				break;
 			case 'name':
-				return arr.sort((a, b) => a.originalFilename.localeCompare(b.originalFilename));
+				sorted = arr.sort((a, b) => a.originalFilename.localeCompare(b.originalFilename));
+				break;
 			default:
-				return arr;
+				sorted = arr;
 		}
+		console.log('after:', sorted.map((p) => p.originalFilename).join(', '));
+		return sorted;
 	});
 
 	function getPhotoUrl(
@@ -124,7 +153,6 @@
 		return `/uploads/${path}`;
 	}
 
-	// Selection logic
 	function toggleSelect(id: string) {
 		const next = new Set(selectedIds);
 		if (next.has(id)) next.delete(id);
@@ -160,7 +188,7 @@
 			const end = Math.max(lastClickedIdx, idx);
 			const next = new Set(selectedIds);
 			for (let i = start; i <= end; i++) {
-				next.add(photos[i].id);
+				next.add(sortedPhotos[i].id);
 			}
 			selectedIds = next;
 			return;
@@ -176,7 +204,6 @@
 	function handleContextMenu(idx: number, photo: Photo, e: MouseEvent) {
 		e.preventDefault();
 
-		// If right-clicked photo is not selected, select only it
 		if (!selectedIds.has(photo.id)) {
 			selectedIds = new Set([photo.id]);
 			lastClickedIdx = idx;
@@ -186,27 +213,25 @@
 
 		items.push({
 			label: '查看',
-			icon: '🔍',
-			action: () => { lightboxIndex = idx; }
+			action: () => {
+				lightboxIndex = idx;
+			}
 		});
 
 		items.push({
 			label: '下載',
-			icon: '⬇',
 			action: () => downloadSelected()
 		});
 
 		if (canEdit && !isSharedView) {
 			items.push({
 				label: '設為封面',
-				icon: '🖼',
 				action: () => setCover(photo.id),
 				separator: true
 			});
 
 			items.push({
 				label: selectedIds.size > 1 ? `刪除 ${selectedIds.size} 張` : '刪除',
-				icon: '🗑',
 				action: () => deleteSelected(),
 				destructive: true,
 				separator: true
@@ -258,9 +283,18 @@
 		}
 	}
 
+	function handleWindowClick(e: MouseEvent) {
+		if (showDisplayPanel && displayPanelRef && !displayPanelRef.contains(e.target as Node)) {
+			showDisplayPanel = false;
+		}
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
-		// Don't handle if typing in input
-		if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+		if (
+			(e.target as HTMLElement).tagName === 'INPUT' ||
+			(e.target as HTMLElement).tagName === 'TEXTAREA'
+		)
+			return;
 
 		if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
 			e.preventDefault();
@@ -278,7 +312,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onclick={handleWindowClick} />
 
 <svelte:head>
 	<title>{album?.name || 'Album'} - NILPhoto</title>
@@ -297,102 +331,86 @@
 		<a href="/" class="mt-4 text-sm text-muted-foreground hover:text-foreground">返回首頁</a>
 	</div>
 {:else if album}
-	<div class="mx-auto max-w-7xl px-4 py-8">
-		<div class="mb-8">
-			<div class="flex items-center justify-between">
-				<a href="/" class="text-sm text-muted-foreground hover:text-foreground">&larr; 返回</a>
-				<div class="relative">
-					<button
-						class="flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent {showDisplayPanel ? 'border-primary text-primary' : 'border-border text-muted-foreground'}"
-						onclick={() => (showDisplayPanel = !showDisplayPanel)}
+	<header class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+		<nav class="mx-auto flex h-14 items-center justify-between px-4">
+			<div class="flex items-center gap-3">
+				<h1 class="text-lg font-bold tracking-tight">{album.name}</h1>
+				<span class="text-sm text-muted-foreground">{photos.length}</span>
+			</div>
+			<div class="relative" bind:this={displayPanelRef}>
+				<button
+					class="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent {showDisplayPanel
+						? 'border-primary text-primary'
+						: 'border-border text-muted-foreground'}"
+					onclick={() => (showDisplayPanel = !showDisplayPanel)}
+				>
+					<LayoutGrid size={14} />
+					顯示設定
+				</button>
+				{#if showDisplayPanel}
+					<div
+						class="absolute top-full right-0 z-50 mt-2 w-64 rounded-xl border bg-popover p-0 shadow-xl"
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-						</svg>
-						顯示設定
-					</button>
-					{#if showDisplayPanel}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div class="fixed inset-0 z-40" onclick={() => (showDisplayPanel = false)}></div>
-						<div class="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border bg-popover p-0 shadow-xl">
-							<div class="px-4 pt-4 pb-2">
-								<h3 class="text-sm font-semibold text-popover-foreground">檢視設定</h3>
-							</div>
+						<div class="px-4 pt-4 pb-2">
+							<h3 class="text-sm font-semibold text-popover-foreground">檢視設定</h3>
+						</div>
 
-							<!-- 排序模式 -->
-							<div class="px-4 pb-2">
-								<p class="mb-1 text-xs text-muted-foreground">排序模式</p>
-								{#each [
-									{ value: 'date-desc', label: '最新優先', icon: '↓' },
-									{ value: 'date-asc', label: '最早優先', icon: '↑' },
-									{ value: 'name', label: '檔名排序', icon: 'A' }
-								] as opt}
-									<button
-										class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-										onclick={() => { sortBy = opt.value as typeof sortBy; }}
-									>
-										<span class="w-4 text-center text-xs text-muted-foreground">{opt.icon}</span>
-										<span class="flex-1 text-left">{opt.label}</span>
-										{#if sortBy === opt.value}
-											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-												<polyline points="20 6 9 17 4 12" />
-											</svg>
-										{/if}
-									</button>
+						<div class="px-4 pb-2">
+							<p class="mb-1 text-xs text-muted-foreground">排序模式</p>
+							{#each [{ value: 'date-desc', label: '最新優先', icon: '↓' }, { value: 'date-asc', label: '最早優先', icon: '↑' }, { value: 'name', label: '檔名排序', icon: 'A' }] as opt}
+								<button
+									class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
+									onclick={() => {
+										sortBy = opt.value as typeof sortBy;
+									}}
+								>
+									<span class="w-4 text-center text-xs text-muted-foreground">{opt.icon}</span>
+									<span class="flex-1 text-left">{opt.label}</span>
+									{#if sortBy === opt.value}
+										<Check size={16} />
+									{/if}
+								</button>
+							{/each}
+						</div>
+
+						<div class="mx-4 border-t"></div>
+
+						<div class="px-4 pt-3 pb-2">
+							<p class="mb-1 text-xs text-muted-foreground">欄位設定</p>
+							<input
+								type="range"
+								min="0"
+								max="6"
+								step="1"
+								value={sliderIndex}
+								oninput={(e) => setColumnFromSlider(parseInt(e.currentTarget.value))}
+								class="my-2 w-full accent-primary"
+							/>
+							<div class="flex justify-between text-[10px] text-muted-foreground">
+								{#each ['自動', '3', '4', '5', '6', '7', '8'] as label, i}
+									<span class={sliderIndex === i ? 'font-bold text-primary' : ''}>{label}</span>
 								{/each}
 							</div>
-
-							<div class="mx-4 border-t"></div>
-
-							<!-- 欄位設定 -->
-							<div class="px-4 pt-3 pb-2">
-								<p class="mb-1 text-xs text-muted-foreground">欄位設定</p>
-								<div class="flex items-center justify-between text-xs text-muted-foreground">
-									<span>自動</span>
-									<span>8</span>
-								</div>
-								<input
-									type="range"
-									min="0"
-									max="8"
-									step="1"
-									bind:value={columnCount}
-									oninput={() => {
-										if (columnCount === 1) columnCount = 2;
-										if (columnCount === 0) {
-											localStorage.removeItem('nilphoto-columns');
-										} else {
-											localStorage.setItem('nilphoto-columns', String(columnCount));
-										}
-									}}
-									class="my-2 w-full accent-primary"
-								/>
-								<div class="flex justify-between text-[10px] text-muted-foreground">
-									<span>自動</span>
-									{#each [3, 4, 5, 6, 7, 8] as n}
-										<span class={columnCount === n ? 'font-bold text-primary' : ''}>{n}</span>
-									{/each}
-								</div>
-							</div>
-
-							<!-- 底部顯示目前值 -->
-							<div class="border-t px-4 py-2 text-center text-sm text-muted-foreground">
-								{columnCount === 0 ? '自動' : `${columnCount} 列`}
-							</div>
 						</div>
-					{/if}
-				</div>
-			</div>
-			<h1 class="mt-4 text-3xl font-bold">{album.name}</h1>
-			{#if album.description}
-				<p class="mt-2 text-muted-foreground">{album.description}</p>
-			{/if}
-			<p class="mt-1 text-sm text-muted-foreground">{photos.length} 張圖片</p>
-		</div>
 
-		<!-- Batch actions bar -->
+						<div class="border-t px-4 py-2 text-center text-sm text-muted-foreground">
+							{columnCount === 0 ? '自動' : `${columnCount} 列`}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</nav>
+	</header>
+
+	<div class="mx-auto px-4 py-4">
+		{#if album.description}
+			<p class="mb-4 text-muted-foreground">{album.description}</p>
+		{/if}
+
 		{#if selectMode}
-			<div class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+			<div
+				class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3"
+			>
 				<span class="text-sm font-medium">已選取 {selectedIds.size} 張</span>
 				<button
 					class="rounded-md border px-3 py-1 text-sm hover:bg-accent"
@@ -422,10 +440,14 @@
 				<p class="text-muted-foreground">此相簿還沒有圖片</p>
 			</div>
 		{:else}
-			<div class="photo-grid {columnClass} gap-4">
-				{#each sortedPhotos as photo, idx}
+			<div class="photo-grid {columnClass} gap-1" style={columnStyle}>
+				{#each sortedPhotos as photo, idx (photo.id)}
 					<button
-						class="mb-4 block w-full cursor-zoom-in overflow-hidden rounded-lg break-inside-avoid border-2 transition-colors {selectedIds.has(photo.id) ? 'border-primary' : 'border-transparent'}"
+						class="mb-4 block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-lg border-2 transition-colors {selectedIds.has(
+							photo.id
+						)
+							? 'border-primary'
+							: 'border-transparent'}"
 						data-photo-id={photo.id}
 						onclick={(e) => handlePhotoClick(idx, photo, e)}
 						oncontextmenu={(e) => handleContextMenu(idx, photo, e)}
@@ -441,7 +463,9 @@
 							<!-- Selection checkbox -->
 							<!-- svelte-ignore a11y_interactive_supports_focus -->
 							<div
-								class="absolute left-1.5 top-1.5 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 transition-opacity {selectedIds.has(photo.id)
+								class="absolute top-1.5 left-1.5 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 transition-opacity {selectedIds.has(
+									photo.id
+								)
 									? 'border-primary bg-primary'
 									: 'border-white/70 bg-black/30 opacity-0 group-hover:opacity-100'}"
 								role="checkbox"
@@ -460,18 +484,18 @@
 								}}
 							>
 								{#if selectedIds.has(photo.id)}
-									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-										<polyline points="20 6 9 17 4 12" />
-									</svg>
+									<Check size={12} color="white" strokeWidth={3} />
 								{/if}
 							</div>
-							<!-- Cover badge -->
+
 							{#if album.coverPhotoId === photo.id}
-								<div class="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white">
+								<div
+									class="absolute right-1 bottom-1 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white"
+								>
 									封面
 								</div>
 							{/if}
-							<!-- Hover overlay -->
+
 							<div
 								class="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 transition-opacity group-hover:opacity-100"
 							>

@@ -3,7 +3,6 @@
 
 	interface MenuItem {
 		label: string;
-		icon?: string;
 		action: () => void;
 		separator?: boolean;
 		destructive?: boolean;
@@ -57,7 +56,6 @@
 </script>
 
 {#if visible}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		bind:this={menuEl}
 		class="fixed z-[100] min-w-[160px] rounded-lg border bg-popover p-1 shadow-lg"
@@ -76,9 +74,6 @@
 					visible = false;
 				}}
 			>
-				{#if item.icon}
-					<span class="w-4 text-center">{item.icon}</span>
-				{/if}
 				{item.label}
 			</button>
 		{/each}

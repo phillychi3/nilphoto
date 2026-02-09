@@ -38,11 +38,15 @@
 		photos: Photo[];
 		index: number;
 		canEdit?: boolean;
-		getPhotoUrl: (photo: { storagePath: string; thumbnailPath: string | null }, thumbnail?: boolean) => string;
+		getPhotoUrl: (
+			photo: { storagePath: string; thumbnailPath: string | null },
+			thumbnail?: boolean
+		) => string;
 	} = $props();
 
 	let editorOpen = $state(false);
 	let imageLoaded = $state(false);
+	let thumbnailHidden = $state(false);
 	let loadProgress = $state(0);
 	let showInfoPanel = $state(false);
 
@@ -83,6 +87,7 @@
 
 			// Reset state for new photo
 			imageLoaded = false;
+			thumbnailHidden = false;
 			loadProgress = 0;
 			loadedBytes = '';
 			fullImageUrl = '';
@@ -380,7 +385,6 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if show && photo}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-50 flex bg-black/90"
 		role="dialog"
@@ -390,18 +394,30 @@
 		ontouchmove={handleTouchMove}
 		ontouchend={handleTouchEnd}
 	>
-		<!-- Main image area -->
 		<div class="relative flex flex-1 items-center justify-center" class:mr-80={showInfoPanel}>
-			<!-- Top toolbar -->
-			<div class="absolute right-4 top-4 z-10 flex items-center gap-1">
-				<!-- Zoom controls -->
+			<div class="absolute top-4 right-4 z-10 flex items-center gap-1">
 				<button
 					class="rounded-full p-2 text-white/70 hover:text-white"
 					onclick={zoomOut}
 					aria-label="縮小"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
+							x1="8"
+							x2="14"
+							y1="11"
+							y2="11"
+						/>
 					</svg>
 				</button>
 				<span class="min-w-12 text-center text-xs text-white/50">
@@ -412,8 +428,23 @@
 					onclick={zoomIn}
 					aria-label="放大"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
+							x1="11"
+							x2="11"
+							y1="8"
+							y2="14"
+						/><line x1="8" x2="14" y1="11" y2="11" />
 					</svg>
 				</button>
 
@@ -425,8 +456,18 @@
 					onclick={() => (showInfoPanel = !showInfoPanel)}
 					aria-label="資訊"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
 					</svg>
 				</button>
 
@@ -436,8 +477,20 @@
 					onclick={toggleFullscreen}
 					aria-label="全螢幕"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path
+							d="M3 16v3a2 2 0 0 0 2 2h3"
+						/><path d="M16 21h3a2 2 0 0 0 2-2v-3" />
 					</svg>
 				</button>
 
@@ -445,11 +498,26 @@
 				{#if canEdit}
 					<button
 						class="rounded-full p-2 text-white/70 hover:text-white"
-						onclick={() => { resetView(); editorOpen = true; }}
+						onclick={() => {
+							resetView();
+							editorOpen = true;
+						}}
 						aria-label="編輯"
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<path
+								d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+							/>
 						</svg>
 					</button>
 				{/if}
@@ -462,8 +530,18 @@
 					onclick={close}
 					aria-label="關閉"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M18 6 6 18" /><path d="m6 6 12 12" />
 					</svg>
 				</button>
 			</div>
@@ -471,12 +549,22 @@
 			<!-- Previous -->
 			{#if index > 0}
 				<button
-					class="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 text-white/70 hover:text-white"
+					class="absolute top-1/2 left-4 z-10 -translate-y-1/2 rounded-full p-2 text-white/70 hover:text-white"
 					onclick={prev}
 					aria-label="上一張"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m15 18-6-6 6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="32"
+						height="32"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m15 18-6-6 6-6" />
 					</svg>
 				</button>
 			{/if}
@@ -484,12 +572,22 @@
 			<!-- Next -->
 			{#if index < photos.length - 1}
 				<button
-					class="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full p-2 text-white/70 hover:text-white"
+					class="absolute top-1/2 right-4 z-10 -translate-y-1/2 rounded-full p-2 text-white/70 hover:text-white"
 					onclick={next}
 					aria-label="下一張"
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="m9 18 6-6-6-6"/>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="32"
+						height="32"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="m9 18 6-6-6-6" />
 					</svg>
 				</button>
 			{/if}
@@ -504,32 +602,38 @@
 				onpointerup={handlePointerUp}
 				ondblclick={handleDblClick}
 			>
-				<!-- Thumbnail while loading -->
-				{#if !imageLoaded && photo.thumbnailPath}
+				{#if !thumbnailHidden && photo.thumbnailPath}
 					<img
 						src={getPhotoUrl(photo, true)}
 						alt=""
-						class="absolute max-h-[90vh] max-w-[90vw] select-none object-contain"
-						style="transform: scale({scale}) translate({translateX / scale}px, {translateY / scale}px)"
+						class="absolute h-[90vh] w-[90vw] object-contain select-none"
+						style="transform: scale({scale}) translate({translateX / scale}px, {translateY /
+							scale}px)"
 						draggable="false"
 					/>
 				{/if}
 
-				<!-- Full resolution image -->
 				{#if fullImageUrl}
 					<img
 						src={fullImageUrl}
 						alt={photo.title || photo.originalFilename}
-						class="max-h-[90vh] max-w-[90vw] select-none object-contain transition-opacity duration-300 {imageLoaded ? 'opacity-100' : 'opacity-0'}"
-						style="transform: scale({scale}) translate({translateX / scale}px, {translateY / scale}px)"
+						class="absolute h-[90vh] w-[90vw] object-contain transition-opacity duration-500 select-none {imageLoaded
+							? 'opacity-100'
+							: 'opacity-0'}"
+						style="transform: scale({scale}) translate({translateX / scale}px, {translateY /
+							scale}px)"
 						draggable="false"
+						ontransitionend={(e) => {
+							if (e.propertyName === 'opacity' && imageLoaded) thumbnailHidden = true;
+						}}
 					/>
 				{/if}
 			</div>
 
-			<!-- Bottom EXIF quick bar -->
 			{#if photo.exif && scale <= 1 && !showInfoPanel}
-				<div class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg bg-black/60 px-4 py-2 backdrop-blur-sm">
+				<div
+					class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg bg-black/60 px-4 py-2 backdrop-blur-sm"
+				>
 					<div class="flex items-center gap-4 text-xs text-white/80">
 						{#if photo.exif.cameraModel}
 							<span>{photo.exif.cameraMake || ''} {photo.exif.cameraModel}</span>
@@ -550,24 +654,26 @@
 				</div>
 			{/if}
 
-			<!-- Counter + Loading progress (bottom right) -->
-			<div class="absolute bottom-4 right-4 flex items-center gap-2 text-xs text-white/40">
+			<div class="absolute right-4 bottom-4 flex items-center gap-2 text-xs text-white/40">
 				{#if !imageLoaded}
 					{#if loadProgress > 0}
 						<span class="text-white/60">{loadProgress}%</span>
 					{:else if loadProgress === -1}
 						<span class="text-white/60">{loadedBytes}</span>
 					{:else}
-						<div class="h-3 w-3 animate-spin rounded-full border border-white/30 border-t-white/70"></div>
+						<div
+							class="h-3 w-3 animate-spin rounded-full border border-white/30 border-t-white/70"
+						></div>
 					{/if}
 				{/if}
 				<span>{index + 1} / {photos.length}</span>
 			</div>
 		</div>
 
-		<!-- Info Side Panel -->
 		{#if showInfoPanel}
-			<div class="w-80 shrink-0 overflow-y-auto border-l border-white/10 bg-black/80 backdrop-blur-sm">
+			<div
+				class="w-80 shrink-0 overflow-y-auto border-l border-white/10 bg-black/80 backdrop-blur-sm"
+			>
 				<div class="p-4">
 					<!-- Photo title & filename -->
 					<div class="mb-4">
@@ -583,13 +689,20 @@
 					<!-- Histogram -->
 					{#if histogramReady}
 						<div class="mb-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">直方圖</h4>
+							<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
+								直方圖
+							</h4>
 							<div class="relative h-24 w-full overflow-hidden rounded bg-white/5">
 								<svg class="h-full w-full" viewBox="0 0 256 100" preserveAspectRatio="none">
 									<path d={getHistogramPath(histogramR, 256, 100)} fill="rgba(239,68,68,0.3)" />
 									<path d={getHistogramPath(histogramG, 256, 100)} fill="rgba(34,197,94,0.3)" />
 									<path d={getHistogramPath(histogramB, 256, 100)} fill="rgba(59,130,246,0.3)" />
-									<path d={getHistogramPath(histogramL, 256, 100)} fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)" stroke-width="0.5" />
+									<path
+										d={getHistogramPath(histogramL, 256, 100)}
+										fill="rgba(255,255,255,0.2)"
+										stroke="rgba(255,255,255,0.4)"
+										stroke-width="0.5"
+									/>
 								</svg>
 							</div>
 						</div>
@@ -597,7 +710,9 @@
 
 					<!-- Image Info -->
 					<div class="mb-4">
-						<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">圖片資訊</h4>
+						<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
+							圖片資訊
+						</h4>
 						<div class="space-y-1.5 text-xs">
 							{#if photo.width && photo.height}
 								<div class="flex justify-between">
@@ -623,12 +738,16 @@
 					<!-- Camera Info -->
 					{#if photo.exif}
 						<div class="mb-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">相機資訊</h4>
+							<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
+								相機資訊
+							</h4>
 							<div class="space-y-1.5 text-xs">
 								{#if photo.exif.cameraMake || photo.exif.cameraModel}
 									<div class="flex justify-between">
 										<span class="text-white/50">相機</span>
-										<span class="text-white/80">{photo.exif.cameraMake || ''} {photo.exif.cameraModel || ''}</span>
+										<span class="text-white/80"
+											>{photo.exif.cameraMake || ''} {photo.exif.cameraModel || ''}</span
+										>
 									</div>
 								{/if}
 								{#if photo.exif.lensModel}
@@ -642,7 +761,9 @@
 
 						<!-- Shooting Parameters -->
 						<div class="mb-4">
-							<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">拍攝參數</h4>
+							<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
+								拍攝參數
+							</h4>
 							<div class="space-y-1.5 text-xs">
 								{#if photo.exif.focalLength}
 									<div class="flex justify-between">
@@ -685,11 +806,15 @@
 						<!-- GPS -->
 						{#if photo.exif.latitude != null && photo.exif.longitude != null}
 							<div class="mb-4">
-								<h4 class="mb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">位置資訊</h4>
+								<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
+									位置資訊
+								</h4>
 								<div class="space-y-1.5 text-xs">
 									<div class="flex justify-between">
 										<span class="text-white/50">座標</span>
-										<span class="text-white/80">{formatCoord(photo.exif.latitude, photo.exif.longitude)}</span>
+										<span class="text-white/80"
+											>{formatCoord(photo.exif.latitude, photo.exif.longitude)}</span
+										>
 									</div>
 									{#if photo.exif.altitude != null}
 										<div class="flex justify-between">
@@ -698,7 +823,8 @@
 										</div>
 									{/if}
 									<a
-										href="https://www.google.com/maps?q={photo.exif.latitude},{photo.exif.longitude}"
+										href="https://www.google.com/maps?q={photo.exif.latitude},{photo.exif
+											.longitude}"
 										target="_blank"
 										rel="noopener noreferrer"
 										class="mt-1 inline-block text-blue-400 hover:text-blue-300"
@@ -714,7 +840,6 @@
 		{/if}
 	</div>
 
-	<!-- Photo Editor -->
 	{#if editorOpen && photo}
 		<PhotoEditor
 			imageUrl={fullImageUrl || getPhotoUrl(photo)}
