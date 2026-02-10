@@ -7,6 +7,7 @@
 	import * as Drawer from '$lib/components/ui/drawer';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Check from '@lucide/svelte/icons/check';
+	import { downloadPhotos } from '$lib/utils/download';
 
 	interface Photo {
 		id: string;
@@ -268,14 +269,19 @@
 	}
 
 	function downloadSelected() {
-		for (const id of selectedIds) {
-			const photo = photos.find((p) => p.id === id);
-			if (!photo) continue;
-			const a = document.createElement('a');
-			a.href = getPhotoUrl(photo);
-			a.download = photo.originalFilename;
-			a.click();
-		}
+		const photosToDownload = Array.from(selectedIds)
+			.map((id) => {
+				const photo = photos.find((p) => p.id === id);
+				if (!photo) return null;
+				return {
+					id: photo.id,
+					url: getPhotoUrl(photo),
+					filename: photo.originalFilename
+				};
+			})
+			.filter((p): p is NonNullable<typeof p> => p !== null);
+
+		downloadPhotos(photosToDownload);
 	}
 
 	function handleDragSelection(ids: string[]) {
