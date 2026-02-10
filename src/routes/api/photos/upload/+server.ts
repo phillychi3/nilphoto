@@ -2,7 +2,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { photos, photoExif, albums, albumPhotos } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { getStorage, generateStorageKey } from '$lib/server/storage';
+import { getStorage, generateStorageKey, getDefaultStorageProvider } from '$lib/server/storage';
 import { processImage, isValidImageType, MAX_FILE_SIZE } from '$lib/server/services/image';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -52,7 +52,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const { metadata, thumbnail, exif } = await processImage(buffer);
 
 		const storage = await getStorage();
-		const storageProvider = 'local';
+		const storageProvider = await getDefaultStorageProvider();
 
 		const originalKey = generateStorageKey(file.name, 'photos');
 		const thumbnailKey = generateStorageKey(file.name, 'thumbnails');

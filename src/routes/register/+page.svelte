@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -19,7 +19,7 @@
 
 	onMount(async () => {
 		// Get invite code from URL if present
-		const urlCode = $page.url.searchParams.get('code');
+		const urlCode = page.url.searchParams.get('code');
 		if (urlCode) {
 			inviteCode = urlCode;
 		}
@@ -81,13 +81,13 @@
 </script>
 
 <svelte:head>
-	<title>註冊 - NILPhoto</title>
+	<title>註冊 - {page.data.siteName}</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-background px-4">
 	<Card.Root class="w-full max-w-md">
 		<Card.Header class="space-y-1 text-center">
-			<Card.Title class="text-2xl font-bold">NILPhoto</Card.Title>
+			<Card.Title class="text-2xl font-bold">{page.data.siteName}</Card.Title>
 			<Card.Description>建立您的帳戶</Card.Description>
 		</Card.Header>
 		<Card.Content>

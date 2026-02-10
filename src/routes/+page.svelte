@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import Lightbox from '$lib/components/Lightbox.svelte';
 
 	interface Photo {
@@ -55,7 +56,7 @@
 </script>
 
 <svelte:head>
-	<title>NILPhoto</title>
+	<title>{page.data.siteName}</title>
 </svelte:head>
 
 <div class="mx-auto px-4 py-4">

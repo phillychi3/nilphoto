@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -360,7 +361,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
-	<title>所有照片 - NILPhoto</title>
+	<title>所有照片 - {page.data.siteName}</title>
 </svelte:head>
 
 <ContextMenu bind:visible={ctxVisible} x={ctxX} y={ctxY} items={ctxItems} />

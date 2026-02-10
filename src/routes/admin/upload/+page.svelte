@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
 
 	interface Album {
@@ -129,7 +129,7 @@
 </script>
 
 <svelte:head>
-	<title>上傳圖片 - NILPhoto</title>
+	<title>上傳圖片 - {page.data.siteName}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 py-8">
@@ -140,7 +140,6 @@
 			<div class="text-muted-foreground">載入中...</div>
 		</div>
 	{:else}
-		<!-- Album Selection -->
 		<Card.Root class="mb-6">
 			<Card.Header>
 				<Card.Title>選擇相簿</Card.Title>
@@ -172,7 +171,6 @@
 			</Card.Content>
 		</Card.Root>
 
-		<!-- Drop Zone -->
 		<div
 			class="mb-6 flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors {dragging
 				? 'border-primary bg-primary/5'
@@ -217,7 +215,6 @@
 			/>
 		</div>
 
-		<!-- Upload Items -->
 		{#if uploadItems.length > 0}
 			<div class="mb-4 flex items-center justify-between">
 				<p class="text-sm text-muted-foreground">
@@ -236,7 +233,7 @@
 							alt={item.file.name}
 							class="aspect-square w-full object-cover"
 						/>
-						<!-- Status overlay -->
+
 						{#if item.status === 'uploading'}
 							<div class="absolute inset-0 flex items-center justify-center bg-black/50">
 								<div
@@ -265,7 +262,6 @@
 							</div>
 						{/if}
 
-						<!-- Remove button -->
 						{#if item.status === 'pending'}
 							<button
 								class="absolute top-1 right-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"

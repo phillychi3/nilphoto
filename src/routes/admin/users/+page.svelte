@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -110,10 +111,10 @@
 </script>
 
 <svelte:head>
-	<title>人員管理 - NILPhoto</title>
+	<title>人員管理 - {page.data.siteName}</title>
 </svelte:head>
 
-<div class="mx-auto max-w-4xl px-4 py-8">
+<div class="mx-auto max-w-4xl py-4">
 	<h1 class="mb-6 text-2xl font-bold">人員管理</h1>
 
 	<!-- Users Section -->

@@ -1,8 +1,8 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { backups, photos } from '$lib/server/db/schema';
-import { desc, eq, count, and, sql } from 'drizzle-orm';
-import { getStorage } from '$lib/server/storage';
+import { desc, eq, count, and } from 'drizzle-orm';
+import { getStorage, LocalAdapter } from '$lib/server/storage';
 
 // GET /api/backups - List backups with stats
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -94,13 +94,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: '儲存設定不存在' }, { status: 404 });
 	}
 
-	let targetPhotos: { id: string; storagePath: string; originalFilename: string }[];
+	let targetPhotos: { id: string; storagePath: string; originalFilename: string; storageProvider: string }[];
 
 	if (photoIds && photoIds.length > 0) {
 		// Specific photos
 		targetPhotos = await db.query.photos.findMany({
 			where: (p, { inArray }) => inArray(p.id, photoIds),
-			columns: { id: true, storagePath: true, originalFilename: true }
+			columns: { id: true, storagePath: true, originalFilename: true, storageProvider: true }
 		});
 	} else {
 		// All photos not yet backed up to this config
@@ -111,7 +111,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const backedIds = new Set(alreadyBacked.map((b) => b.photoId));
 
 		const allPhotos = await db.query.photos.findMany({
-			columns: { id: true, storagePath: true, originalFilename: true }
+			columns: { id: true, storagePath: true, originalFilename: true, storageProvider: true }
 		});
 		targetPhotos = allPhotos.filter((p) => !backedIds.has(p.id));
 	}
@@ -140,9 +140,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 async function processBackups(
 	storageConfigId: string,
-	targetPhotos: { id: string; storagePath: string; originalFilename: string }[]
+	targetPhotos: { id: string; storagePath: string; originalFilename: string; storageProvider: string }[]
 ) {
-	const sourceStorage = await getStorage(); // Default storage (where photos live)
+	const defaultStorage = await getStorage(); // Default storage
+	const localStorage = new LocalAdapter({
+		basePath: 'data/uploads',
+		baseUrl: '/uploads'
+	});
 	const backupStorage = await getStorage(storageConfigId);
 
 	for (const photo of targetPhotos) {
@@ -160,7 +164,22 @@ async function processBackups(
 		await db.update(backups).set({ status: 'in_progress' }).where(eq(backups.id, backupRecord.id));
 
 		try {
-			const data = await sourceStorage.download(photo.storagePath);
+			// 根據 storageProvider 選擇來源，若失敗則 fallback
+			let data: Buffer;
+			if (photo.storageProvider === 'local') {
+				try {
+					data = await localStorage.download(photo.storagePath);
+				} catch {
+					data = await defaultStorage.download(photo.storagePath);
+				}
+			} else {
+				try {
+					data = await defaultStorage.download(photo.storagePath);
+				} catch {
+					data = await localStorage.download(photo.storagePath);
+				}
+			}
+
 			const backupKey = `backups/${photo.storagePath}`;
 			await backupStorage.upload(backupKey, data);
 

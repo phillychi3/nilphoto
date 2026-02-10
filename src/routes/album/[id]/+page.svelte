@@ -318,7 +318,7 @@
 <svelte:window onkeydown={handleKeydown} onclick={handleWindowClick} />
 
 <svelte:head>
-	<title>{album?.name || 'Album'} - NILPhoto</title>
+	<title>{album?.name || 'Album'} - {page.data.siteName}</title>
 </svelte:head>
 
 <ContextMenu bind:visible={ctxVisible} x={ctxX} y={ctxY} items={ctxItems} />

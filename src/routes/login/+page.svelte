@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -31,7 +31,7 @@
 			}
 
 			// Redirect to the original page or home
-			const redirectTo = $page.url.searchParams.get('redirect') || '/';
+			const redirectTo = page.url.searchParams.get('redirect') || '/';
 			goto(redirectTo);
 		} catch (err) {
 			error = '發生錯誤，請稍後再試';
@@ -42,13 +42,13 @@
 </script>
 
 <svelte:head>
-	<title>登入 - NILPhoto</title>
+	<title>登入 - {page.data.siteName}</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-background px-4">
 	<Card.Root class="w-full max-w-md">
 		<Card.Header class="space-y-1 text-center">
-			<Card.Title class="text-2xl font-bold">NILPhoto</Card.Title>
+			<Card.Title class="text-2xl font-bold">{page.data.siteName}</Card.Title>
 			<Card.Description>登入您的帳戶</Card.Description>
 		</Card.Header>
 		<Card.Content>

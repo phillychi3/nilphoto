@@ -5,7 +5,6 @@ import { S3Adapter } from './adapters/s3';
 import { LocalAdapter } from './adapters/local';
 import type { StorageAdapter } from './types';
 
-// 導出類型
 export type {
 	StorageAdapter,
 	UploadOptions,
@@ -15,7 +14,6 @@ export type {
 	LocalConfig
 } from './types';
 
-// 導出 Adapter 類別
 export { S3Adapter } from './adapters/s3';
 export { LocalAdapter } from './adapters/local';
 
@@ -67,6 +65,16 @@ export async function getStorage(configId?: string): Promise<StorageAdapter> {
 				baseUrl: '/uploads'
 			});
 	}
+}
+
+/**
+ * 取得目前預設的儲存服務提供者名稱
+ */
+export async function getDefaultStorageProvider(): Promise<'s3' | 'r2' | 'github' | 'local'> {
+	const config = await db.query.storageConfigs.findFirst({
+		where: eq(storageConfigs.isDefault, true)
+	});
+	return config?.provider || 'local';
 }
 
 /**

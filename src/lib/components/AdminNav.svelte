@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
-	let currentPath = $derived($page.url.pathname);
+	let currentPath = $derived(page.url.pathname);
 
 	interface Props {
 		onNavigate?: () => void;
+		onLogout?: () => void;
 	}
 
-	let { onNavigate }: Props = $props();
+	let { onNavigate, onLogout }: Props = $props();
 
 	const links = [
-		{ href: '/upload', label: '上傳' },
-		{ href: '/photos', label: '所有照片' },
-		{ href: '/albums', label: '相簿管理' },
+		{ href: '/admin/upload', label: '上傳' },
+		{ href: '/admin/photos', label: '所有照片' },
+		{ href: '/admin/albums', label: '相簿管理' },
 		{ href: '/admin/users', label: '人員管理' },
 		{ href: '/admin/backups', label: '備份管理' },
-		{ href: '/admin/storage', label: '儲存空間' },
 		{ href: '/admin/settings', label: '站點設定' }
 	];
 </script>
@@ -33,4 +33,17 @@
 			{link.label}
 		</a>
 	{/each}
+
+	{#if onLogout}
+		<div class="my-2 border-t border-border"></div>
+		<button
+			onclick={() => {
+				onNavigate?.();
+				onLogout?.();
+			}}
+			class="rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+		>
+			登出
+		</button>
+	{/if}
 </nav>

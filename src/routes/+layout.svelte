@@ -4,8 +4,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { page } from '$app/state';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	let isAlbumPage = $derived(page.route?.id?.startsWith('/album/') ?? false);
+	let isAdminPage = $derived(page.route?.id?.startsWith('/admin') ?? false);
 	let user = $state<{ id: string; email: string; name: string | null; role: string } | null>(null);
 
 	async function loadUser() {
@@ -34,10 +35,10 @@
 </svelte:head>
 
 <div class="dark min-h-screen bg-background text-foreground">
-	{#if !isAlbumPage}
+	{#if !isAlbumPage && !isAdminPage}
 		<header class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
 			<nav class="mx-auto flex h-14 items-center justify-between px-4">
-				<a href="/" class="text-lg font-bold tracking-tight">NILPhoto</a>
+				<a href="/" class="text-lg font-bold tracking-tight">{data.siteName}</a>
 				<div class="flex items-center gap-3">
 					{#if user}
 						{#if user.role === 'admin'}
