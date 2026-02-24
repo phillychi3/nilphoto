@@ -1,7 +1,8 @@
-import { mkdir, writeFile, readFile, unlink, access } from 'fs/promises';
+import { mkdir, writeFile, readFile, unlink, access, readdir, stat } from 'fs/promises';
 import { dirname, join } from 'path';
 import type {
 	StorageAdapter,
+	StorageObject,
 	LocalConfig,
 	UploadOptions,
 	UploadResult,
@@ -24,10 +25,8 @@ export class LocalAdapter implements StorageAdapter {
 	async upload(key: string, data: Buffer, options?: UploadOptions): Promise<UploadResult> {
 		const filePath = join(this.basePath, key);
 
-		// 確保目錄存在
 		await mkdir(dirname(filePath), { recursive: true });
 
-		// 寫入檔案
 		await writeFile(filePath, data);
 
 		return {
@@ -47,7 +46,6 @@ export class LocalAdapter implements StorageAdapter {
 		try {
 			await unlink(filePath);
 		} catch (error) {
-			// 如果檔案不存在，忽略錯誤
 			if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
 				throw error;
 			}
@@ -55,7 +53,6 @@ export class LocalAdapter implements StorageAdapter {
 	}
 
 	async getUrl(key: string, options?: UrlOptions): Promise<string> {
-		// 本地儲存不支援 signed URL，直接返回公開 URL
 		return `${this.baseUrl}/${key}`;
 	}
 
@@ -67,5 +64,34 @@ export class LocalAdapter implements StorageAdapter {
 		} catch {
 			return false;
 		}
+	}
+
+	async listObjects(prefix?: string): Promise<StorageObject[]> {
+		const objects: StorageObject[] = [];
+		const rootPath = this.basePath;
+
+		const scanDir = async (dir: string) => {
+			let entries;
+			try {
+				entries = await readdir(dir, { withFileTypes: true });
+			} catch {
+				return;
+			}
+			for (const entry of entries) {
+				const fullPath = join(dir, entry.name);
+				if (entry.isDirectory()) {
+					await scanDir(fullPath);
+				} else {
+					const key = fullPath.slice(rootPath.length + 1).replace(/\\/g, '/');
+					if (!prefix || key.startsWith(prefix)) {
+						const stats = await stat(fullPath);
+						objects.push({ key, size: stats.size, lastModified: stats.mtime });
+					}
+				}
+			}
+		};
+
+		await scanDir(rootPath);
+		return objects;
 	}
 }

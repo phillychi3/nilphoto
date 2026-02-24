@@ -3,10 +3,18 @@ import {
 	PutObjectCommand,
 	GetObjectCommand,
 	DeleteObjectCommand,
-	HeadObjectCommand
+	HeadObjectCommand,
+	ListObjectsV2Command
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import type { StorageAdapter, S3Config, UploadOptions, UploadResult, UrlOptions } from '../types';
+import type {
+	StorageAdapter,
+	StorageObject,
+	S3Config,
+	UploadOptions,
+	UploadResult,
+	UrlOptions
+} from '../types';
 
 /**
  * S3/R2 儲存 Adapter
@@ -62,7 +70,6 @@ export class S3Adapter implements StorageAdapter {
 			throw new Error(`Failed to download file: ${key}`);
 		}
 
-		// 將 stream 轉換為 Buffer
 		const chunks: Uint8Array[] = [];
 		for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
 			chunks.push(chunk);
@@ -80,12 +87,10 @@ export class S3Adapter implements StorageAdapter {
 	}
 
 	async getUrl(key: string, options?: UrlOptions): Promise<string> {
-		// 如果有設定公開 URL (CDN)，直接返回
 		if (this.publicUrl && !options?.expiresIn) {
 			return `${this.publicUrl}/${key}`;
 		}
 
-		// 否則生成 signed URL
 		const command = new GetObjectCommand({
 			Bucket: this.bucket,
 			Key: key
@@ -111,5 +116,34 @@ export class S3Adapter implements StorageAdapter {
 			}
 			throw error;
 		}
+	}
+
+	async listObjects(prefix?: string): Promise<StorageObject[]> {
+		const objects: StorageObject[] = [];
+		let continuationToken: string | undefined;
+
+		do {
+			const response = await this.client.send(
+				new ListObjectsV2Command({
+					Bucket: this.bucket,
+					Prefix: prefix,
+					ContinuationToken: continuationToken
+				})
+			);
+
+			for (const obj of response.Contents || []) {
+				if (obj.Key && obj.Size !== undefined) {
+					objects.push({
+						key: obj.Key,
+						size: obj.Size,
+						lastModified: obj.LastModified
+					});
+				}
+			}
+
+			continuationToken = response.NextContinuationToken;
+		} while (continuationToken);
+
+		return objects;
 	}
 }

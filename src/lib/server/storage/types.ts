@@ -19,6 +19,15 @@ export interface UrlOptions {
 }
 
 /**
+ * 儲存服務中的物件資訊
+ */
+export interface StorageObject {
+	key: string;
+	size: number;
+	lastModified?: Date;
+}
+
+/**
  * 儲存服務統一介面
  */
 export interface StorageAdapter {
@@ -36,6 +45,9 @@ export interface StorageAdapter {
 
 	/** 檢查檔案是否存在 */
 	exists(key: string): Promise<boolean>;
+
+	/** 列出指定前綴下的所有物件 */
+	listObjects(prefix?: string): Promise<StorageObject[]>;
 }
 
 /**

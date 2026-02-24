@@ -40,6 +40,17 @@
 	let formPublicUrl = $state('');
 	let saving = $state(false);
 
+	interface SyncResult {
+		total: number;
+		alreadySynced: number;
+		added: number;
+		errors: number;
+		errorDetails: string[];
+	}
+
+	let syncing = $state<string | null>(null);
+	let syncResult = $state<{ configId: string; result: SyncResult } | null>(null);
+
 	// Edit state
 	let showEdit = $state(false);
 	let editId = $state('');
@@ -57,7 +68,6 @@
 		await Promise.all([loadSiteSettings(), loadConfigs()]);
 	});
 
-	// ===== Site Settings Functions =====
 	async function loadSiteSettings() {
 		try {
 			const res = await fetch('/api/site-settings');
@@ -92,7 +102,6 @@
 		}
 	}
 
-	// ===== Storage Functions =====
 	async function loadConfigs() {
 		loadingStorage = true;
 		try {
@@ -230,6 +239,47 @@
 		}
 	}
 
+	async function syncStorage(configId: string) {
+		syncing = configId;
+		syncResult = null;
+
+		try {
+			const res = await fetch('/api/photos/sync', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ storageConfigId: configId })
+			});
+			const data = await res.json();
+			if (res.ok) {
+				syncResult = { configId, result: data.results };
+			} else {
+				syncResult = {
+					configId,
+					result: {
+						total: 0,
+						alreadySynced: 0,
+						added: 0,
+						errors: 1,
+						errorDetails: [data.error || '同步失敗']
+					}
+				};
+			}
+		} catch {
+			syncResult = {
+				configId,
+				result: {
+					total: 0,
+					alreadySynced: 0,
+					added: 0,
+					errors: 1,
+					errorDetails: ['連線失敗']
+				}
+			};
+		} finally {
+			syncing = null;
+		}
+	}
+
 	function providerLabel(provider: string): string {
 		switch (provider) {
 			case 's3':
@@ -251,7 +301,6 @@
 <div class="mx-auto max-w-4xl py-4">
 	<h1 class="mb-6 text-2xl font-bold">站點設定</h1>
 
-	<!-- Site Basic Settings -->
 	<Card.Root class="mb-8">
 		<Card.Header>
 			<Card.Title>基本設定</Card.Title>
@@ -285,7 +334,6 @@
 		</Card.Content>
 	</Card.Root>
 
-	<!-- Storage Settings -->
 	<div class="mb-4 flex items-center justify-between">
 		<div>
 			<h2 class="text-lg font-semibold">儲存服務設定</h2>
@@ -392,7 +440,6 @@
 		</Dialog.Root>
 	</div>
 
-	<!-- Current default info -->
 	<Card.Root class="mb-4">
 		<Card.Content class="p-4">
 			<div class="flex items-center gap-3">
@@ -479,6 +526,14 @@
 							>
 								{testing === config.id ? '測試中...' : '測試連線'}
 							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => syncStorage(config.id)}
+								disabled={syncing !== null || testing !== null}
+							>
+								{syncing === config.id ? '同步中...' : '同步到資料庫'}
+							</Button>
 							{#if !config.isDefault}
 								<Button variant="ghost" size="sm" onclick={() => setDefault(config.id)}>
 									設為預設
@@ -494,13 +549,48 @@
 							</Button>
 						</div>
 					</div>
+					{#if syncResult && syncResult.configId === config.id}
+						<div class="border-t px-4 py-3 text-sm">
+							{#if syncResult.result.errors > 0 && syncResult.result.added === 0 && syncResult.result.total === 0}
+								<p class="text-destructive">{syncResult.result.errorDetails[0]}</p>
+							{:else}
+								<div class="flex flex-wrap gap-4 text-muted-foreground">
+									<span
+										>找到 <strong class="text-foreground">{syncResult.result.total}</strong> 張圖片</span
+									>
+									<span
+										>已同步 <strong class="text-foreground"
+											>{syncResult.result.alreadySynced}</strong
+										> 張</span
+									>
+									<span class="text-green-600"
+										>新增 <strong>{syncResult.result.added}</strong> 張</span
+									>
+									{#if syncResult.result.errors > 0}
+										<span class="text-destructive"
+											>失敗 <strong>{syncResult.result.errors}</strong> 張</span
+										>
+									{/if}
+								</div>
+								{#if syncResult.result.errorDetails.length > 0}
+									<details class="mt-2">
+										<summary class="cursor-pointer text-xs text-destructive">查看錯誤詳情</summary>
+										<ul class="mt-1 space-y-0.5 text-xs text-destructive">
+											{#each syncResult.result.errorDetails as detail}
+												<li>{detail}</li>
+											{/each}
+										</ul>
+									</details>
+								{/if}
+							{/if}
+						</div>
+					{/if}
 				</Card.Root>
 			{/each}
 		</div>
 	{/if}
 </div>
 
-<!-- Edit Storage Dialog -->
 <Dialog.Root bind:open={showEdit}>
 	<Dialog.Content class="max-w-lg">
 		<Dialog.Header>

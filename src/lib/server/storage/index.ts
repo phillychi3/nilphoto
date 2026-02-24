@@ -7,6 +7,7 @@ import type { StorageAdapter } from './types';
 
 export type {
 	StorageAdapter,
+	StorageObject,
 	UploadOptions,
 	UploadResult,
 	UrlOptions,
@@ -18,13 +19,11 @@ export { S3Adapter } from './adapters/s3';
 export { LocalAdapter } from './adapters/local';
 
 /**
- * 取得儲存服務實例
+ * 取得儲存服務
  * @param configId - 指定的儲存設定 ID，如果不指定則使用預設設定
  * @returns StorageAdapter 實例
  */
 export async function getStorage(configId?: string): Promise<StorageAdapter> {
-	// 如果有指定 configId，查詢該設定
-	// 否則查詢預設設定
 	const config = configId
 		? await db.query.storageConfigs.findFirst({
 				where: eq(storageConfigs.id, configId)
@@ -33,7 +32,6 @@ export async function getStorage(configId?: string): Promise<StorageAdapter> {
 				where: eq(storageConfigs.isDefault, true)
 			});
 
-	// 如果沒有設定，使用本地儲存
 	if (!config) {
 		return new LocalAdapter({
 			basePath: 'data/uploads',
@@ -56,7 +54,6 @@ export async function getStorage(configId?: string): Promise<StorageAdapter> {
 			});
 
 		case 'github':
-			// TODO: 實作 GitHub adapter
 			throw new Error('GitHub adapter not implemented yet');
 
 		default:

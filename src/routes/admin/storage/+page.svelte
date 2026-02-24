@@ -16,11 +16,21 @@
 		createdAt: string;
 	}
 
+	interface SyncResult {
+		total: number;
+		alreadySynced: number;
+		added: number;
+		errors: number;
+		errorDetails: string[];
+	}
+
 	let configs = $state<StorageConfig[]>([]);
 	let loading = $state(true);
 	let showCreate = $state(false);
 	let testing = $state<string | null>(null);
 	let testResult = $state<{ success: boolean; message: string } | null>(null);
+	let syncing = $state<string | null>(null);
+	let syncResult = $state<{ configId: string; result: SyncResult } | null>(null);
 
 	// Form state
 	let formProvider = $state<'s3' | 'r2'>('s3');
@@ -128,6 +138,47 @@
 			testResult = { success: false, message: '測試失敗' };
 		} finally {
 			testing = null;
+		}
+	}
+
+	async function syncStorage(configId: string) {
+		syncing = configId;
+		syncResult = null;
+
+		try {
+			const res = await fetch('/api/photos/sync', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ storageConfigId: configId })
+			});
+			const data = await res.json();
+			if (res.ok) {
+				syncResult = { configId, result: data.results };
+			} else {
+				syncResult = {
+					configId,
+					result: {
+						total: 0,
+						alreadySynced: 0,
+						added: 0,
+						errors: 1,
+						errorDetails: [data.error || '同步失敗']
+					}
+				};
+			}
+		} catch {
+			syncResult = {
+				configId,
+				result: {
+					total: 0,
+					alreadySynced: 0,
+					added: 0,
+					errors: 1,
+					errorDetails: ['連線失敗']
+				}
+			};
+		} finally {
+			syncing = null;
 		}
 	}
 
@@ -256,7 +307,6 @@
 		</Dialog.Root>
 	</div>
 
-	<!-- Current default info -->
 	<Card.Root class="mb-6">
 		<Card.Content class="p-4">
 			<div class="flex items-center gap-3">
@@ -338,9 +388,17 @@
 								variant="outline"
 								size="sm"
 								onclick={() => testConnection(config.id)}
-								disabled={testing !== null}
+								disabled={testing !== null || syncing !== null}
 							>
 								{testing === config.id ? '測試中...' : '測試連線'}
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => syncStorage(config.id)}
+								disabled={syncing !== null || testing !== null}
+							>
+								{syncing === config.id ? '同步中...' : '同步到資料庫'}
 							</Button>
 							{#if !config.isDefault}
 								<Button variant="ghost" size="sm" onclick={() => setDefault(config.id)}>
@@ -357,6 +415,42 @@
 							</Button>
 						</div>
 					</div>
+					{#if syncResult && syncResult.configId === config.id}
+						<div class="border-t px-4 py-3 text-sm">
+							{#if syncResult.result.errors > 0 && syncResult.result.added === 0 && syncResult.result.total === 0}
+								<p class="text-destructive">{syncResult.result.errorDetails[0]}</p>
+							{:else}
+								<div class="flex flex-wrap gap-4 text-muted-foreground">
+									<span
+										>找到 <strong class="text-foreground">{syncResult.result.total}</strong> 張圖片</span
+									>
+									<span
+										>已同步 <strong class="text-foreground"
+											>{syncResult.result.alreadySynced}</strong
+										> 張</span
+									>
+									<span class="text-green-600"
+										>新增 <strong>{syncResult.result.added}</strong> 張</span
+									>
+									{#if syncResult.result.errors > 0}
+										<span class="text-destructive"
+											>失敗 <strong>{syncResult.result.errors}</strong> 張</span
+										>
+									{/if}
+								</div>
+								{#if syncResult.result.errorDetails.length > 0}
+									<details class="mt-2">
+										<summary class="cursor-pointer text-xs text-destructive">查看錯誤詳情</summary>
+										<ul class="mt-1 space-y-0.5 text-xs text-destructive">
+											{#each syncResult.result.errorDetails as detail}
+												<li>{detail}</li>
+											{/each}
+										</ul>
+									</details>
+								{/if}
+							{/if}
+						</div>
+					{/if}
 				</Card.Root>
 			{/each}
 		</div>

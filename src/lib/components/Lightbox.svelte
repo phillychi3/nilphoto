@@ -50,15 +50,33 @@
 	let thumbnailHidden = $state(false);
 	let loadProgress = $state(0);
 	let showInfoPanel = $state(false);
+	let showDrawer = $state(false);
+	let isMobile = $state(false);
 
-	// Histogram data
 	let histogramR = $state<number[]>(new Array(256).fill(0));
 	let histogramG = $state<number[]>(new Array(256).fill(0));
 	let histogramB = $state<number[]>(new Array(256).fill(0));
 	let histogramL = $state<number[]>(new Array(256).fill(0));
 	let histogramReady = $state(false);
 
-	// Zoom & pan state
+	$effect(() => {
+		const mq = window.matchMedia('(max-width: 767px)');
+		isMobile = mq.matches;
+		const handler = (e: MediaQueryListEvent) => {
+			isMobile = e.matches;
+		};
+		mq.addEventListener('change', handler);
+		return () => mq.removeEventListener('change', handler);
+	});
+
+	function toggleInfo() {
+		if (isMobile) {
+			showDrawer = true;
+		} else {
+			showInfoPanel = !showInfoPanel;
+		}
+	}
+
 	let scale = $state(1);
 	let translateX = $state(0);
 	let translateY = $state(0);
@@ -68,13 +86,11 @@
 	let lastTranslateX = $state(0);
 	let lastTranslateY = $state(0);
 
-	// Pinch state
 	let lastPinchDist = $state(0);
 
 	let show = $derived(index >= 0);
 	let photo = $derived(index >= 0 ? photos[index] : null);
 
-	// Preload full image with fetch + ReadableStream for progress tracking
 	let fullImageUrl = $state('');
 	let currentLoadingId = $state('');
 	let loadedBytes = $state('');
@@ -86,7 +102,6 @@
 			let aborted = false;
 			let blobUrl = '';
 
-			// Reset state for new photo
 			imageLoaded = false;
 			thumbnailHidden = false;
 			loadProgress = 0;
@@ -144,7 +159,6 @@
 					loadProgress = 100;
 					imageLoaded = true;
 
-					// Compute histogram
 					computeHistogram(blobUrl, photoId);
 				} catch {
 					if (!aborted && currentLoadingId === photoId) {
@@ -171,7 +185,7 @@
 			if (currentLoadingId !== photoId) return;
 
 			const canvas = document.createElement('canvas');
-			// Use smaller size for performance
+
 			const maxDim = 512;
 			const ratio = Math.min(maxDim / img.width, maxDim / img.height, 1);
 			canvas.width = Math.round(img.width * ratio);
@@ -226,6 +240,7 @@
 	function close() {
 		editorOpen = false;
 		showInfoPanel = false;
+		showDrawer = false;
 		resetView();
 		index = -1;
 	}
@@ -261,10 +276,9 @@
 		if (e.key === '-') zoomOut();
 		if (e.key === '0') resetView();
 		if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-		if (e.key === 'i' || e.key === 'I') showInfoPanel = !showInfoPanel;
+		if (e.key === 'i' || e.key === 'I') toggleInfo();
 	}
 
-	// Zoom
 	function zoomIn() {
 		scale = Math.min(scale * 1.5, 10);
 	}
@@ -288,7 +302,6 @@
 		}
 	}
 
-	// Pan (drag when zoomed)
 	function handlePointerDown(e: PointerEvent) {
 		if (scale <= 1) return;
 		dragging = true;
@@ -309,7 +322,6 @@
 		dragging = false;
 	}
 
-	// Pinch zoom (touch)
 	function handleTouchStart(e: TouchEvent) {
 		if (e.touches.length === 2) {
 			const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -340,7 +352,6 @@
 		}
 	}
 
-	// Fullscreen
 	function toggleFullscreen() {
 		if (document.fullscreenElement) {
 			document.exitFullscreen();
@@ -349,7 +360,6 @@
 		}
 	}
 
-	// Double click to zoom
 	function handleDblClick() {
 		if (scale > 1) {
 			resetView();
@@ -395,7 +405,7 @@
 		ontouchmove={handleTouchMove}
 		ontouchend={handleTouchEnd}
 	>
-		<div class="relative flex flex-1 items-center justify-center" class:mr-80={showInfoPanel}>
+		<div class="relative flex flex-1 items-center justify-center">
 			<div class="absolute top-4 right-4 z-10 flex items-center gap-1">
 				<button
 					class="rounded-full p-2 text-white/70 hover:text-white"
@@ -451,10 +461,11 @@
 
 				<div class="mx-1 h-5 w-px bg-white/20"></div>
 
-				<!-- Info toggle -->
 				<button
-					class="rounded-full p-2 {showInfoPanel ? 'text-white' : 'text-white/70 hover:text-white'}"
-					onclick={() => (showInfoPanel = !showInfoPanel)}
+					class="rounded-full p-2 {showInfoPanel || showDrawer
+						? 'text-white'
+						: 'text-white/70 hover:text-white'}"
+					onclick={toggleInfo}
 					aria-label="資訊"
 				>
 					<svg
@@ -472,7 +483,6 @@
 					</svg>
 				</button>
 
-				<!-- Fullscreen -->
 				<button
 					class="rounded-full p-2 text-white/70 hover:text-white"
 					onclick={toggleFullscreen}
@@ -495,7 +505,6 @@
 					</svg>
 				</button>
 
-				<!-- Edit -->
 				{#if canEdit}
 					<button
 						class="rounded-full p-2 text-white/70 hover:text-white"
@@ -525,7 +534,6 @@
 
 				<div class="mx-1 h-5 w-px bg-white/20"></div>
 
-				<!-- Close -->
 				<button
 					class="rounded-full p-2 text-white/70 hover:text-white"
 					onclick={close}
@@ -547,7 +555,6 @@
 				</button>
 			</div>
 
-			<!-- Previous -->
 			{#if index > 0}
 				<button
 					class="absolute top-1/2 left-4 z-10 -translate-y-1/2 rounded-full p-2 text-white/70 hover:text-white"
@@ -570,7 +577,6 @@
 				</button>
 			{/if}
 
-			<!-- Next -->
 			{#if index < photos.length - 1}
 				<button
 					class="absolute top-1/2 right-4 z-10 -translate-y-1/2 rounded-full p-2 text-white/70 hover:text-white"
@@ -593,7 +599,6 @@
 				</button>
 			{/if}
 
-			<!-- Image with zoom & pan -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class="flex h-full w-full items-center justify-center overflow-hidden"
@@ -672,12 +677,10 @@
 		</div>
 
 		{#if showInfoPanel}
-			<!-- 桌面端：側邊欄 -->
 			<div
 				class="hidden w-80 shrink-0 overflow-y-auto border-l border-white/10 bg-black/80 backdrop-blur-sm md:block"
 			>
 				<div class="p-4">
-					<!-- Photo title & filename -->
 					<div class="mb-4">
 						{#if photo.title}
 							<h3 class="text-sm font-medium text-white">{photo.title}</h3>
@@ -688,7 +691,6 @@
 						{/if}
 					</div>
 
-					<!-- Histogram -->
 					{#if histogramReady}
 						<div class="mb-4">
 							<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
@@ -710,7 +712,6 @@
 						</div>
 					{/if}
 
-					<!-- Image Info -->
 					<div class="mb-4">
 						<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
 							圖片資訊
@@ -737,7 +738,6 @@
 						</div>
 					</div>
 
-					<!-- Camera Info -->
 					{#if photo.exif}
 						<div class="mb-4">
 							<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
@@ -761,7 +761,6 @@
 							</div>
 						</div>
 
-						<!-- Shooting Parameters -->
 						<div class="mb-4">
 							<h4 class="mb-2 text-[11px] font-medium tracking-wider text-white/40 uppercase">
 								拍攝參數
@@ -839,193 +838,183 @@
 					{/if}
 				</div>
 			</div>
+		{/if}
 
-			<!-- 移動端：底部 Drawer -->
-			<Drawer.Root bind:open={showInfoPanel}>
-				<Drawer.Content class="max-h-[80vh] md:hidden">
-					<div class="mx-auto w-full max-w-md">
-						<Drawer.Header>
-							<Drawer.Title>照片資訊</Drawer.Title>
-						</Drawer.Header>
-						<div class="overflow-y-auto p-4 pb-8">
-							<!-- Photo title & filename -->
-							<div class="mb-4">
-								{#if photo.title}
-									<h3 class="text-sm font-medium">{photo.title}</h3>
-								{/if}
-								<p class="text-xs text-muted-foreground">{photo.originalFilename}</p>
-								{#if photo.description}
-									<p class="mt-1 text-xs text-muted-foreground">{photo.description}</p>
-								{/if}
-							</div>
-
-							<!-- Histogram -->
-							{#if histogramReady}
-								<div class="mb-4">
-									<h4
-										class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-									>
-										直方圖
-									</h4>
-									<div class="relative h-24 w-full overflow-hidden rounded bg-muted">
-										<svg class="h-full w-full" viewBox="0 0 256 100" preserveAspectRatio="none">
-											<path d={getHistogramPath(histogramR, 256, 100)} fill="rgba(239,68,68,0.3)" />
-											<path d={getHistogramPath(histogramG, 256, 100)} fill="rgba(34,197,94,0.3)" />
-											<path
-												d={getHistogramPath(histogramB, 256, 100)}
-												fill="rgba(59,130,246,0.3)"
-											/>
-											<path
-												d={getHistogramPath(histogramL, 256, 100)}
-												fill="rgba(128,128,128,0.2)"
-												stroke="rgba(128,128,128,0.4)"
-												stroke-width="0.5"
-											/>
-										</svg>
-									</div>
-								</div>
+		<Drawer.Root bind:open={showDrawer}>
+			<Drawer.Content class="max-h-[80vh]">
+				<div class="mx-auto w-full max-w-md">
+					<Drawer.Header>
+						<Drawer.Title>照片資訊</Drawer.Title>
+					</Drawer.Header>
+					<div class="overflow-y-auto p-4 pb-8">
+						<div class="mb-4">
+							{#if photo.title}
+								<h3 class="text-sm font-medium">{photo.title}</h3>
 							{/if}
+							<p class="text-xs text-muted-foreground">{photo.originalFilename}</p>
+							{#if photo.description}
+								<p class="mt-1 text-xs text-muted-foreground">{photo.description}</p>
+							{/if}
+						</div>
 
-							<!-- Image Info -->
+						{#if histogramReady}
 							<div class="mb-4">
 								<h4
 									class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
 								>
-									圖片資訊
+									直方圖
+								</h4>
+								<div class="relative h-24 w-full overflow-hidden rounded bg-muted">
+									<svg class="h-full w-full" viewBox="0 0 256 100" preserveAspectRatio="none">
+										<path d={getHistogramPath(histogramR, 256, 100)} fill="rgba(239,68,68,0.3)" />
+										<path d={getHistogramPath(histogramG, 256, 100)} fill="rgba(34,197,94,0.3)" />
+										<path d={getHistogramPath(histogramB, 256, 100)} fill="rgba(59,130,246,0.3)" />
+										<path
+											d={getHistogramPath(histogramL, 256, 100)}
+											fill="rgba(128,128,128,0.2)"
+											stroke="rgba(128,128,128,0.4)"
+											stroke-width="0.5"
+										/>
+									</svg>
+								</div>
+							</div>
+						{/if}
+
+						<div class="mb-4">
+							<h4
+								class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+							>
+								圖片資訊
+							</h4>
+							<div class="space-y-1.5 text-xs">
+								{#if photo.width && photo.height}
+									<div class="flex justify-between">
+										<span class="text-muted-foreground">解析度</span>
+										<span>{photo.width} × {photo.height}</span>
+									</div>
+								{/if}
+								{#if photo.aspectRatio}
+									<div class="flex justify-between">
+										<span class="text-muted-foreground">長寬比</span>
+										<span>{photo.aspectRatio.toFixed(2)}</span>
+									</div>
+								{/if}
+								{#if photo.createdAt}
+									<div class="flex justify-between">
+										<span class="text-muted-foreground">上傳時間</span>
+										<span>{formatDate(photo.createdAt)}</span>
+									</div>
+								{/if}
+							</div>
+						</div>
+
+						{#if photo.exif}
+							<div class="mb-4">
+								<h4
+									class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+								>
+									相機資訊
 								</h4>
 								<div class="space-y-1.5 text-xs">
-									{#if photo.width && photo.height}
+									{#if photo.exif.cameraMake || photo.exif.cameraModel}
 										<div class="flex justify-between">
-											<span class="text-muted-foreground">解析度</span>
-											<span>{photo.width} × {photo.height}</span>
+											<span class="text-muted-foreground">相機</span>
+											<span class="text-right"
+												>{photo.exif.cameraMake || ''} {photo.exif.cameraModel || ''}</span
+											>
 										</div>
 									{/if}
-									{#if photo.aspectRatio}
+									{#if photo.exif.lensModel}
 										<div class="flex justify-between">
-											<span class="text-muted-foreground">長寬比</span>
-											<span>{photo.aspectRatio.toFixed(2)}</span>
-										</div>
-									{/if}
-									{#if photo.createdAt}
-										<div class="flex justify-between">
-											<span class="text-muted-foreground">上傳時間</span>
-											<span>{formatDate(photo.createdAt)}</span>
+											<span class="text-muted-foreground">鏡頭</span>
+											<span class="text-right">{photo.exif.lensModel}</span>
 										</div>
 									{/if}
 								</div>
 							</div>
 
-							<!-- Camera Info -->
-							{#if photo.exif}
-								<div class="mb-4">
-									<h4
-										class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-									>
-										相機資訊
-									</h4>
-									<div class="space-y-1.5 text-xs">
-										{#if photo.exif.cameraMake || photo.exif.cameraModel}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">相機</span>
-												<span class="text-right"
-													>{photo.exif.cameraMake || ''} {photo.exif.cameraModel || ''}</span
-												>
-											</div>
-										{/if}
-										{#if photo.exif.lensModel}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">鏡頭</span>
-												<span class="text-right">{photo.exif.lensModel}</span>
-											</div>
-										{/if}
-									</div>
-								</div>
-
-								<!-- Shooting Parameters -->
-								<div class="mb-4">
-									<h4
-										class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-									>
-										拍攝參數
-									</h4>
-									<div class="space-y-1.5 text-xs">
-										{#if photo.exif.focalLength}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">焦距</span>
-												<span>
-													{photo.exif.focalLength}mm
-													{#if photo.exif.focalLength35mm}
-														<span class="text-muted-foreground"
-															>({photo.exif.focalLength35mm}mm 等效)</span
-														>
-													{/if}
-												</span>
-											</div>
-										{/if}
-										{#if photo.exif.aperture}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">光圈</span>
-												<span>f/{photo.exif.aperture}</span>
-											</div>
-										{/if}
-										{#if photo.exif.shutterSpeed}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">快門</span>
-												<span>{photo.exif.shutterSpeed}</span>
-											</div>
-										{/if}
-										{#if photo.exif.iso}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">ISO</span>
-												<span>{photo.exif.iso}</span>
-											</div>
-										{/if}
-										{#if photo.exif.takenAt}
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">拍攝時間</span>
-												<span>{formatDate(photo.exif.takenAt)}</span>
-											</div>
-										{/if}
-									</div>
-								</div>
-
-								<!-- GPS -->
-								{#if photo.exif.latitude != null && photo.exif.longitude != null}
-									<div class="mb-4">
-										<h4
-											class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
-										>
-											位置資訊
-										</h4>
-										<div class="space-y-1.5 text-xs">
-											<div class="flex justify-between">
-												<span class="text-muted-foreground">座標</span>
-												<span>{formatCoord(photo.exif.latitude, photo.exif.longitude)}</span>
-											</div>
-											{#if photo.exif.altitude != null}
-												<div class="flex justify-between">
-													<span class="text-muted-foreground">海拔</span>
-													<span>{photo.exif.altitude.toFixed(1)}m</span>
-												</div>
-											{/if}
-											<a
-												href="https://www.google.com/maps?q={photo.exif.latitude},{photo.exif
-													.longitude}"
-												target="_blank"
-												rel="noopener noreferrer"
-												class="mt-1 inline-block text-primary hover:underline"
-											>
-												在 Google Maps 中查看 &rarr;
-											</a>
+							<div class="mb-4">
+								<h4
+									class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+								>
+									拍攝參數
+								</h4>
+								<div class="space-y-1.5 text-xs">
+									{#if photo.exif.focalLength}
+										<div class="flex justify-between">
+											<span class="text-muted-foreground">焦距</span>
+											<span>
+												{photo.exif.focalLength}mm
+												{#if photo.exif.focalLength35mm}
+													<span class="text-muted-foreground"
+														>({photo.exif.focalLength35mm}mm 等效)</span
+													>
+												{/if}
+											</span>
 										</div>
+									{/if}
+									{#if photo.exif.aperture}
+										<div class="flex justify-between">
+											<span class="text-muted-foreground">光圈</span>
+											<span>f/{photo.exif.aperture}</span>
+										</div>
+									{/if}
+									{#if photo.exif.shutterSpeed}
+										<div class="flex justify-between">
+											<span class="text-muted-foreground">快門</span>
+											<span>{photo.exif.shutterSpeed}</span>
+										</div>
+									{/if}
+									{#if photo.exif.iso}
+										<div class="flex justify-between">
+											<span class="text-muted-foreground">ISO</span>
+											<span>{photo.exif.iso}</span>
+										</div>
+									{/if}
+									{#if photo.exif.takenAt}
+										<div class="flex justify-between">
+											<span class="text-muted-foreground">拍攝時間</span>
+											<span>{formatDate(photo.exif.takenAt)}</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+
+							{#if photo.exif.latitude != null && photo.exif.longitude != null}
+								<div class="mb-4">
+									<h4
+										class="mb-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+									>
+										位置資訊
+									</h4>
+									<div class="space-y-1.5 text-xs">
+										<div class="flex justify-between">
+											<span class="text-muted-foreground">座標</span>
+											<span>{formatCoord(photo.exif.latitude, photo.exif.longitude)}</span>
+										</div>
+										{#if photo.exif.altitude != null}
+											<div class="flex justify-between">
+												<span class="text-muted-foreground">海拔</span>
+												<span>{photo.exif.altitude.toFixed(1)}m</span>
+											</div>
+										{/if}
+										<a
+											href="https://www.google.com/maps?q={photo.exif.latitude},{photo.exif
+												.longitude}"
+											target="_blank"
+											rel="noopener noreferrer"
+											class="mt-1 inline-block text-primary hover:underline"
+										>
+											在 Google Maps 中查看 &rarr;
+										</a>
 									</div>
-								{/if}
+								</div>
 							{/if}
-						</div>
+						{/if}
 					</div>
-				</Drawer.Content>
-			</Drawer.Root>
-		{/if}
+				</div>
+			</Drawer.Content>
+		</Drawer.Root>
 	</div>
 
 	{#if editorOpen && photo}
