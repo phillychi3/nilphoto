@@ -36,6 +36,7 @@
 			if (!container || !container.contains(target)) return;
 		}
 
+		e.preventDefault();
 		dragging = true;
 		startX = e.clientX;
 		startY = e.clientY;

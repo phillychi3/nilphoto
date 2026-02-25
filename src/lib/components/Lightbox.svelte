@@ -40,7 +40,7 @@
 		index: number;
 		canEdit?: boolean;
 		getPhotoUrl: (
-			photo: { storagePath: string; thumbnailPath: string | null },
+			photo: { storagePath: string; thumbnailPath: string | null; url?: string; thumbnailUrl?: string | null },
 			thumbnail?: boolean
 		) => string;
 	} = $props();

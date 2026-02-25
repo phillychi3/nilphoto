@@ -87,6 +87,32 @@ export function generateStorageKey(originalFilename: string, prefix = 'uploads')
 }
 
 /**
+ * 解析照片的實際 URL
+ * 若儲存提供者為 S3/R2，則透過儲存服務取得直連連結（若設定了 publicUrl 則為直連，否則為簽名 URL）
+ * 否則回傳本地代理路徑 /uploads/...
+ */
+export async function resolvePhotoUrls(
+	storagePath: string,
+	thumbnailPath: string | null,
+	storageProvider: string,
+	cachedStorage?: StorageAdapter | null
+): Promise<{ url: string; thumbnailUrl: string | null }> {
+	if (storageProvider === 's3' || storageProvider === 'r2') {
+		const storage = cachedStorage ?? (await getStorage());
+		const [url, thumbnailUrl] = await Promise.all([
+			storage.getUrl(storagePath),
+			thumbnailPath ? storage.getUrl(thumbnailPath) : Promise.resolve(null)
+		]);
+		return { url, thumbnailUrl };
+	}
+
+	return {
+		url: `/uploads/${storagePath}`,
+		thumbnailUrl: thumbnailPath ? `/uploads/${thumbnailPath}` : null
+	};
+}
+
+/**
  * 根據檔案副檔名取得 MIME type
  */
 export function getContentType(filename: string): string {

@@ -20,6 +20,8 @@
 		aspectRatio: number | null;
 		storagePath: string;
 		thumbnailPath: string | null;
+		url?: string;
+		thumbnailUrl?: string | null;
 		createdAt?: string;
 		exif: {
 			cameraMake: string | null;
@@ -148,11 +150,18 @@
 	});
 
 	function getPhotoUrl(
-		photo: { storagePath: string; thumbnailPath: string | null },
+		photo: {
+			storagePath: string;
+			thumbnailPath: string | null;
+			url?: string;
+			thumbnailUrl?: string | null;
+		},
 		thumbnail = false
 	): string {
-		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
-		return `/uploads/${path}`;
+		if (thumbnail) {
+			return photo.thumbnailUrl || `/uploads/${photo.thumbnailPath || photo.storagePath}`;
+		}
+		return photo.url || `/uploads/${photo.storagePath}`;
 	}
 
 	function toggleSelect(id: string) {
@@ -328,7 +337,7 @@
 </svelte:head>
 
 <ContextMenu bind:visible={ctxVisible} x={ctxX} y={ctxY} items={ctxItems} />
-<DragSelect containerSelector=".photo-grid" onSelectionChange={handleDragSelection} />
+<DragSelect containerSelector=".photo-select-area" onSelectionChange={handleDragSelection} />
 
 {#if loading}
 	<div class="flex justify-center py-20">
@@ -480,7 +489,7 @@
 		</nav>
 	</header>
 
-	<div class="mx-auto px-4 py-4">
+	<div class="photo-select-area mx-auto px-4 py-4">
 		{#if album.description}
 			<p class="mb-4 text-muted-foreground">{album.description}</p>
 		{/if}

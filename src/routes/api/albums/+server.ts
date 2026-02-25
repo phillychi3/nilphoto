@@ -2,6 +2,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { albums, albumPhotos } from '$lib/server/db/schema';
 import { eq, desc, or, and, asc } from 'drizzle-orm';
+import { resolvePhotoUrls, getStorage } from '$lib/server/storage';
 
 function generateShareToken(): string {
 	return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
@@ -33,9 +34,24 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			}
 		});
 
+		const storage = links.length > 0 ? await getStorage() : null;
+
+		const photosWithUrls = await Promise.all(
+			links.map(async (l) => {
+				const photo = l.photo;
+				const { url: resolvedUrl, thumbnailUrl } = await resolvePhotoUrls(
+					photo.storagePath,
+					photo.thumbnailPath,
+					photo.storageProvider,
+					storage
+				);
+				return { ...photo, url: resolvedUrl, thumbnailUrl };
+			})
+		);
+
 		return json({
 			album: featured,
-			photos: links.map((l) => l.photo)
+			photos: photosWithUrls
 		});
 	}
 

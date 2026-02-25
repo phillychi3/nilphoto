@@ -10,6 +10,8 @@
 		id: string;
 		thumbnailPath: string | null;
 		storagePath: string;
+		url?: string;
+		thumbnailUrl?: string | null;
 		title: string | null;
 		originalFilename: string;
 		photoTags?: { tag: { id: string; name: string } }[];
@@ -237,8 +239,10 @@
 	}
 
 	function getPhotoUrl(photo: Photo, thumbnail = true): string {
-		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
-		return `/uploads/${path}`;
+		if (thumbnail) {
+			return photo.thumbnailUrl || `/uploads/${photo.thumbnailPath || photo.storagePath}`;
+		}
+		return photo.url || `/uploads/${photo.storagePath}`;
 	}
 </script>
 

@@ -2,6 +2,7 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { albums, albumPhotos } from '$lib/server/db/schema';
 import { eq, asc } from 'drizzle-orm';
+import { resolvePhotoUrls, getStorage } from '$lib/server/storage';
 
 // GET /api/albums/:id - Get album with photos
 export const GET: RequestHandler = async ({ params, locals, url }) => {
@@ -46,11 +47,24 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		}
 	});
 
-	const photosResult = links.map((link) => link.photo);
+	const storage = links.length > 0 ? await getStorage() : null;
+
+	const photosWithUrls = await Promise.all(
+		links.map(async (link) => {
+			const photo = link.photo;
+			const { url: resolvedUrl, thumbnailUrl } = await resolvePhotoUrls(
+				photo.storagePath,
+				photo.thumbnailPath,
+				photo.storageProvider,
+				storage
+			);
+			return { ...photo, url: resolvedUrl, thumbnailUrl };
+		})
+	);
 
 	return json({
 		album,
-		photos: photosResult,
+		photos: photosWithUrls,
 		canEdit: isOwner || isAdmin
 	});
 };

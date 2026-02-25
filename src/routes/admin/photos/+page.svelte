@@ -31,6 +31,8 @@
 		aspectRatio: number | null;
 		storagePath: string;
 		thumbnailPath: string | null;
+		url?: string;
+		thumbnailUrl?: string | null;
 		createdAt?: string;
 		albums?: Album[];
 		tags?: Tag[];
@@ -290,11 +292,13 @@
 	}
 
 	function getPhotoUrl(
-		photo: { storagePath: string; thumbnailPath: string | null },
+		photo: { storagePath: string; thumbnailPath: string | null; url?: string; thumbnailUrl?: string | null },
 		thumbnail = false
 	): string {
-		const path = thumbnail && photo.thumbnailPath ? photo.thumbnailPath : photo.storagePath;
-		return `/uploads/${path}`;
+		if (thumbnail) {
+			return photo.thumbnailUrl || `/uploads/${photo.thumbnailPath || photo.storagePath}`;
+		}
+		return photo.url || `/uploads/${photo.storagePath}`;
 	}
 
 	function downloadSelected() {
