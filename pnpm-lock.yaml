@@ -14,6 +14,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.975.0
         version: 3.975.0
+      '@libsql/client':
+        specifier: ^0.15.15
+        version: 0.15.15
       '@node-rs/argon2':
         specifier: ^2.0.2
         version: 2.0.2
@@ -36,9 +39,6 @@ importers:
       '@internationalized/date':
         specifier: ^3.10.0
         version: 3.10.1
-      '@libsql/client':
-        specifier: ^0.15.15
-        version: 0.15.15
       '@lucide/svelte':
         specifier: ^0.561.0
         version: 0.561.0(svelte@5.46.0)
