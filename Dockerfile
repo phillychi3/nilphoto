@@ -12,4 +12,4 @@ RUN DATABASE_URL="libsql://placeholder" DATABASE_AUTH_TOKEN="placeholder" pnpm r
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "build/index.js"]
+CMD ["sh", "scripts/docker-start.sh"]
