@@ -37,13 +37,22 @@ async function seed() {
 	} else {
 		// Create test user
 		const passwordHash = await hash('test', hashOptions);
-		await db.insert(schema.users).values({
-			email: 'test',
-			passwordHash,
-			name: 'Test User',
-			role: 'admin'
-		});
+		const [newUser] = await db
+			.insert(schema.users)
+			.values({
+				email: 'test',
+				passwordHash,
+				name: 'Test User',
+				role: 'admin'
+			})
+			.returning({ id: schema.users.id });
 		console.log('Created test user: email=test, password=test');
+
+		await db.insert(schema.siteSettings).values({
+			key: `must_change_password_${newUser.id}`,
+			value: true
+		});
+		console.log('Marked test user as requiring password change on first login');
 	}
 
 	// Create featured system album

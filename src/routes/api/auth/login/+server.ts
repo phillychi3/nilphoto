@@ -1,7 +1,7 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
+import { users, siteSettings } from '$lib/server/db/schema';
 import { verifyPassword } from '$lib/server/password';
 import { createSession, generateSessionToken, setSessionTokenCookie } from '$lib/server/auth';
 
@@ -28,12 +28,17 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	setSessionTokenCookie({ cookies } as any, token, session.expiresAt);
 
+	const mustChangeSetting = await db.query.siteSettings.findFirst({
+		where: eq(siteSettings.key, `must_change_password_${user.id}`)
+	});
+
 	return json({
 		user: {
 			id: user.id,
 			email: user.email,
 			name: user.name,
 			role: user.role
-		}
+		},
+		mustChangePassword: !!mustChangeSetting
 	});
 };

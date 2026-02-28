@@ -1,7 +1,14 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import {
+	users,
+	inviteCodes,
+	inviteCodeUses,
+	albums,
+	photos,
+	siteSettings
+} from '$lib/server/db/schema';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { hashPassword } from '$lib/server/password';
 
 // GET /api/users - List users (admin only)
@@ -90,6 +97,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			createdAt: users.createdAt
 		});
 
+	await db.insert(siteSettings).values({
+		key: `must_change_password_${newUser.id}`,
+		value: true
+	});
+
 	return json({ user: newUser });
 };
 
@@ -108,6 +120,29 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 	if (userId === locals.user.id) {
 		return json({ error: '無法刪除自己的帳號' }, { status: 400 });
 	}
+
+	const userInviteCodes = await db
+		.select({ id: inviteCodes.id })
+		.from(inviteCodes)
+		.where(eq(inviteCodes.createdBy, userId));
+	if (userInviteCodes.length > 0) {
+		await db.delete(inviteCodeUses).where(
+			inArray(
+				inviteCodeUses.inviteCodeId,
+				userInviteCodes.map((c) => c.id)
+			)
+		);
+	}
+
+	await db.delete(inviteCodeUses).where(eq(inviteCodeUses.userId, userId));
+
+	await db.delete(inviteCodes).where(eq(inviteCodes.createdBy, userId));
+
+	await db.delete(albums).where(eq(albums.ownerId, userId));
+
+	await db.delete(photos).where(eq(photos.uploadedBy, userId));
+
+	await db.delete(siteSettings).where(eq(siteSettings.key, `must_change_password_${userId}`));
 
 	await db.delete(users).where(eq(users.id, userId));
 
