@@ -93,34 +93,43 @@
 		uploadItems = uploadItems.filter((_, i) => i !== index);
 	}
 
-	async function uploadAll() {
-		for (let i = 0; i < uploadItems.length; i++) {
-			const item = uploadItems[i];
-			if (item.status !== 'pending') continue;
+	async function uploadFile(index: number) {
+		const item = uploadItems[index];
+		uploadItems[index] = { ...item, status: 'uploading', progress: 0 };
 
-			uploadItems[i] = { ...item, status: 'uploading', progress: 0 };
-
-			try {
-				const formData = new FormData();
-				formData.append('file', item.file);
-				if (selectedAlbumId) {
-					formData.append('albumId', selectedAlbumId);
-				}
-
-				const res = await fetch('/api/photos/upload', {
-					method: 'POST',
-					body: formData
-				});
-
-				if (!res.ok) {
-					const data = await res.json();
-					uploadItems[i] = { ...uploadItems[i], status: 'error', error: data.error };
-				} else {
-					uploadItems[i] = { ...uploadItems[i], status: 'done', progress: 100 };
-				}
-			} catch {
-				uploadItems[i] = { ...uploadItems[i], status: 'error', error: '上傳失敗' };
+		try {
+			const formData = new FormData();
+			formData.append('file', item.file);
+			if (selectedAlbumId) {
+				formData.append('albumId', selectedAlbumId);
 			}
+
+			const res = await fetch('/api/photos/upload', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (!res.ok) {
+				const data = await res.json();
+				uploadItems[index] = { ...uploadItems[index], status: 'error', error: data.error };
+			} else {
+				uploadItems[index] = { ...uploadItems[index], status: 'done', progress: 100 };
+			}
+		} catch {
+			uploadItems[index] = { ...uploadItems[index], status: 'error', error: '上傳失敗' };
+		}
+	}
+
+	async function uploadAll() {
+		const CONCURRENCY = 3;
+		const pendingIndices = uploadItems
+			.map((item, index) => ({ item, index }))
+			.filter(({ item }) => item.status === 'pending')
+			.map(({ index }) => index);
+
+		for (let i = 0; i < pendingIndices.length; i += CONCURRENCY) {
+			const batch = pendingIndices.slice(i, i + CONCURRENCY);
+			await Promise.all(batch.map((index) => uploadFile(index)));
 		}
 	}
 
