@@ -41,7 +41,12 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		with: {
 			photo: {
 				with: {
-					exif: true
+					exif: true,
+					photoTags: {
+						with: {
+							tag: true
+						}
+					}
 				}
 			}
 		}
@@ -58,14 +63,21 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 				photo.storageProvider,
 				storage
 			);
-			return { ...photo, url: resolvedUrl, thumbnailUrl };
+			return {
+				...photo,
+				tags: photo.photoTags.map((photoTag) => photoTag.tag),
+				photoTags: undefined,
+				url: resolvedUrl,
+				thumbnailUrl
+			};
 		})
 	);
 
 	return json({
 		album,
 		photos: photosWithUrls,
-		canEdit: isOwner || isAdmin
+		canEdit: isOwner || isAdmin,
+		canEditPhotoInfo: isOwner
 	});
 };
 

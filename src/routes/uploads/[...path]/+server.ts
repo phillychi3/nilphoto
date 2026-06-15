@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	try {
 		const data = await readFile(fullPath);
 
-		return new Response(data, {
+		return new Response(new Uint8Array(data), {
 			headers: {
 				'Content-Type': contentType,
 				'Cache-Control': 'public, max-age=31536000, immutable'
@@ -46,7 +46,7 @@ export const GET: RequestHandler = async ({ params }) => {
 		const storage = await getStorage();
 		const data = await storage.download(filePath);
 
-		return new Response(data, {
+		return new Response(new Uint8Array(data), {
 			headers: {
 				'Content-Type': contentType,
 				'Cache-Control': 'public, max-age=31536000, immutable'

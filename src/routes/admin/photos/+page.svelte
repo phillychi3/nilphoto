@@ -52,10 +52,19 @@
 		} | null;
 	}
 
+	type PhotoUpdate = {
+		id: string;
+		title: string | null;
+		description?: string | null;
+		originalFilename: string;
+		tags?: Tag[];
+	};
+
 	const PAGE_SIZE = 50;
 
 	let photos = $state<Photo[]>([]);
 	let albums = $state<Album[]>([]);
+	let allTags = $state<Tag[]>([]);
 	let loading = $state(true);
 	let loadingMore = $state(false);
 	let hasMore = $state(false);
@@ -117,7 +126,7 @@
 			{ rootMargin: '200px' }
 		);
 
-		Promise.all([loadPhotos(), loadAlbums()]);
+		Promise.all([loadPhotos(), loadAlbums(), loadTags()]);
 
 		return () => observer!.disconnect();
 	});
@@ -177,6 +186,17 @@
 			const res = await fetch('/api/albums?includePrivate=true');
 			const data = await res.json();
 			albums = data.albums || [];
+		} catch {
+			// ignore
+		}
+	}
+
+	async function loadTags() {
+		try {
+			const res = await fetch('/api/tags');
+			if (!res.ok) return;
+			const data = await res.json();
+			allTags = (data.tags || []).sort((a: Tag, b: Tag) => a.name.localeCompare(b.name, 'zh-Hant'));
 		} catch {
 			// ignore
 		}
@@ -345,6 +365,15 @@
 		}
 	}
 
+	function handlePhotoUpdated(updatedPhoto: PhotoUpdate) {
+		photos = photos.map((photo) => (photo.id === updatedPhoto.id ? { ...photo, ...updatedPhoto } : photo));
+		for (const tag of updatedPhoto.tags || []) {
+			if (!allTags.some((existingTag) => existingTag.id === tag.id)) {
+				allTags = [...allTags, tag].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+			}
+		}
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (
 			(e.target as HTMLElement).tagName === 'INPUT' ||
@@ -467,7 +496,35 @@
 					</div>
 					<div class="space-y-1.5">
 						<Label for="filter-tag">標籤</Label>
-						<Input id="filter-tag" bind:value={filterTag} placeholder="標籤名稱" />
+						<div class="space-y-2">
+							<select
+								id="filter-tag"
+								bind:value={filterTag}
+								class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							>
+								<option value="">全部標籤</option>
+								{#each allTags as tag (tag.id)}
+									<option value={tag.name}>{tag.name}</option>
+								{/each}
+							</select>
+							{#if allTags.length > 0}
+								<div class="flex max-h-28 flex-wrap gap-2 overflow-y-auto">
+									{#each allTags as tag (tag.id)}
+										<button
+											type="button"
+											class="rounded-full border px-3 py-1 text-xs transition-colors {filterTag === tag.name
+												? 'border-primary bg-primary/10 text-primary'
+												: 'border-border text-muted-foreground hover:bg-accent'}"
+											onclick={() => {
+												filterTag = filterTag === tag.name ? '' : tag.name;
+											}}
+										>
+											{tag.name}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					</div>
 					<div class="space-y-1.5">
 						<Label>拍攝日期</Label>
@@ -637,7 +694,14 @@
 	{/if}
 </div>
 
-<Lightbox {photos} bind:index={lightboxIndex} canEdit={true} {getPhotoUrl} />
+<Lightbox
+	{photos}
+	bind:index={lightboxIndex}
+	canEdit={true}
+	canEditMetadata={true}
+	{getPhotoUrl}
+	onPhotoUpdated={handlePhotoUpdated}
+/>
 
 <!-- Add to Album Dialog -->
 <Dialog.Root bind:open={showAddAlbum}>

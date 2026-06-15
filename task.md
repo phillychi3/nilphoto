@@ -194,14 +194,20 @@
   - [x] 備份狀態儀表板 (統計卡片 + 歷史紀錄表)
   - [x] 排程管理 (新增/啟停用/刪除)
   - [ ] 排程自動執行 (需要 cron job 或外部觸發)
+  - [ ] Backup storage switch
+
+- [x] **tag system**
+  - [x] add tag
+  - [x] show tag
+  - [x] Category tag
 
 ### P4 UX 優化
 
-- [ ] **Google Drive `風格操作**
-  - [ ] 右鍵選單 (cont`ext menu)，含「設定封面圖片」選項
-  - [ ] 框選多選 (drag select)
-  - [ ] Ctrl/Cmd + 點擊多選
-  - [ ] 快捷鍵 (Delete, Enter, Ctrl+A)
+- [x] **Google Drive `風格操作**
+  - [x] 右鍵選單 (cont`ext menu)，含「設定封面圖片」選項
+  - [x] 框選多選 (drag select)
+  - [x] Ctrl/Cmd + 點擊多選
+  - [x] 快捷鍵 (Delete, Enter, Ctrl+A)
 
 - [ ] **圖片分享**
   - [ ] 單張圖片分享連結

@@ -10,6 +10,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		where: eq(photos.id, params.id!),
 		with: {
 			exif: true,
+			photoTags: {
+				with: {
+					tag: true
+				}
+			},
 			albumPhotos: {
 				with: {
 					album: { columns: { id: true, name: true, isPublic: true } }
@@ -41,7 +46,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		photo: {
 			...photo,
 			albums: photo.albumPhotos.map((ap) => ap.album),
+			tags: photo.photoTags.map((photoTag) => photoTag.tag),
 			albumPhotos: undefined,
+			photoTags: undefined,
 			url,
 			thumbnailUrl
 		}

@@ -1,15 +1,41 @@
 <script lang="ts">
 	import CropOverlay, { type CropRect } from './CropOverlay.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+
+	interface Tag {
+		id: string;
+		name: string;
+	}
+
+	interface EditablePhoto {
+		id: string;
+		title: string | null;
+		description?: string | null;
+		originalFilename: string;
+		tags?: Tag[];
+	}
 
 	interface Props {
 		imageUrl: string;
 		imageWidth: number;
 		imageHeight: number;
+		photo: EditablePhoto;
+		canEditMetadata?: boolean;
 		onClose: () => void;
+		onPhotoUpdated?: (photo: EditablePhoto) => void;
 	}
 
-	let { imageUrl, imageWidth, imageHeight, onClose }: Props = $props();
+	let {
+		imageUrl,
+		imageWidth,
+		imageHeight,
+		photo,
+		canEditMetadata = true,
+		onClose,
+		onPhotoUpdated
+	}: Props = $props();
 
 	let rotation = $state(0);
 	let cropping = $state(false);
@@ -17,6 +43,19 @@
 	let containerEl: HTMLDivElement | null = $state(null);
 	let displayWidth = $state(0);
 	let displayHeight = $state(0);
+
+	let titleValue = $state('');
+	let descriptionValue = $state('');
+	let allTags = $state<Tag[]>([]);
+	let selectedTags = $state<Tag[]>([]);
+	let tagInput = $state('');
+	let tagsLoaded = $state(false);
+	let tagsLoadError = $state('');
+	let creatingTag = $state(false);
+	let savingMetadata = $state(false);
+	let metadataError = $state('');
+	let metadataSuccess = $state('');
+	let currentPhotoId = $state('');
 
 	// Crop rect in display pixels
 	let crop = $state<CropRect>({ x: 0, y: 0, width: 0, height: 0 });
@@ -39,6 +78,172 @@
 				return null;
 		}
 	});
+
+	let filteredTagSuggestions = $derived.by(() => {
+		const keyword = tagInput.trim().toLowerCase();
+		return allTags
+			.filter((tag) => !selectedTags.some((selectedTag) => selectedTag.id === tag.id))
+			.filter((tag) => (keyword ? tag.name.toLowerCase().includes(keyword) : true))
+			.slice(0, 8);
+	});
+
+	function normalizeTextValue(value: string): string | null {
+		const trimmed = value.trim();
+		return trimmed.length > 0 ? trimmed : null;
+	}
+
+	function normalizeTagName(name: string): string {
+		return name.trim().replace(/\s+/g, ' ');
+	}
+
+	function findExistingTag(name: string): Tag | undefined {
+		const normalized = normalizeTagName(name).toLowerCase();
+		return allTags.find((tag) => tag.name.toLowerCase() === normalized);
+	}
+
+	function setEditorStateFromPhoto() {
+		titleValue = photo.title || '';
+		descriptionValue = photo.description || '';
+		selectedTags = [...(photo.tags || [])].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+		tagInput = '';
+		metadataError = '';
+		metadataSuccess = '';
+	}
+
+	async function loadTags() {
+		tagsLoadError = '';
+		try {
+			const res = await fetch('/api/tags');
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				tagsLoadError = data.error || '無法載入標籤';
+				tagsLoaded = false;
+				return;
+			}
+			const data = await res.json();
+			allTags = (data.tags || []).sort((a: Tag, b: Tag) => a.name.localeCompare(b.name, 'zh-Hant'));
+			tagsLoaded = true;
+		} catch {
+			tagsLoadError = '無法載入標籤';
+			tagsLoaded = false;
+		}
+	}
+
+	async function ensureTag(name: string): Promise<Tag | null> {
+		const normalized = normalizeTagName(name);
+		if (!normalized) return null;
+
+		const existing = findExistingTag(normalized);
+		if (existing) return existing;
+
+		creatingTag = true;
+		try {
+			const res = await fetch('/api/tags', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name: normalized })
+			});
+
+			if (res.status === 409) {
+				await loadTags();
+				return findExistingTag(normalized) || null;
+			}
+
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				throw new Error(data.error || '建立標籤失敗');
+			}
+
+			const data = await res.json();
+			const createdTag = data.tag as Tag;
+			allTags = [...allTags, createdTag].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+			return createdTag;
+		} finally {
+			creatingTag = false;
+		}
+	}
+
+	async function addTagFromInput(name = tagInput) {
+		const normalized = normalizeTagName(name);
+		if (!normalized) return;
+
+		metadataError = '';
+		try {
+			const tag = await ensureTag(normalized);
+			if (!tag) return;
+
+			if (!selectedTags.some((selectedTag) => selectedTag.id === tag.id)) {
+				selectedTags = [...selectedTags, tag].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+			}
+			tagInput = '';
+		} catch (error) {
+			metadataError = error instanceof Error ? error.message : '建立標籤失敗';
+		}
+	}
+
+	function removeTag(tagId: string) {
+		selectedTags = selectedTags.filter((tag) => tag.id !== tagId);
+		metadataError = '';
+		metadataSuccess = '';
+	}
+
+	function handleTagInputKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ',') {
+			event.preventDefault();
+			addTagFromInput();
+		}
+	}
+
+	async function saveMetadata() {
+		if (!canEditMetadata) return;
+
+		metadataError = '';
+		metadataSuccess = '';
+		savingMetadata = true;
+
+		try {
+			const photoRes = await fetch(`/api/photos/${photo.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: normalizeTextValue(titleValue),
+					description: normalizeTextValue(descriptionValue)
+				})
+			});
+
+			if (!photoRes.ok) {
+				const data = await photoRes.json().catch(() => ({}));
+				throw new Error(data.error || '儲存照片資訊失敗');
+			}
+
+			if (tagsLoaded) {
+				const tagsRes = await fetch(`/api/photos/${photo.id}/tags`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ tagIds: selectedTags.map((tag) => tag.id) })
+				});
+
+				if (!tagsRes.ok) {
+					const data = await tagsRes.json().catch(() => ({}));
+					throw new Error(data.error || '儲存標籤失敗');
+				}
+			}
+
+			const updatedPhoto: EditablePhoto = {
+				...photo,
+				title: normalizeTextValue(titleValue),
+				description: normalizeTextValue(descriptionValue),
+				tags: selectedTags
+			};
+
+			onPhotoUpdated?.(updatedPhoto);
+			metadataSuccess = '照片資訊已更新';
+		} catch (error) {
+			metadataError = error instanceof Error ? error.message : '儲存失敗';
+		} finally {
+			savingMetadata = false;
+		}
+	}
 
 	function applyAspectRatio(ratio: number | null) {
 		if (!ratio || !cropping) return;
@@ -204,12 +409,18 @@
 			updateDisplaySize();
 		}
 	});
+
+	$effect(() => {
+		if (!photo?.id || currentPhotoId === photo.id) return;
+		currentPhotoId = photo.id;
+		setEditorStateFromPhoto();
+		loadTags();
+	});
 </script>
 
 <svelte:window onresize={updateDisplaySize} />
 
 <div class="fixed inset-0 z-50 flex flex-col bg-black">
-	<!-- Toolbar -->
 	<div class="flex items-center justify-between border-b border-white/10 px-4 py-2">
 		<div class="flex items-center gap-2">
 			<Button variant="ghost" size="sm" class="text-white hover:text-white" onclick={onClose}>
@@ -219,7 +430,6 @@
 
 		<div class="flex items-center gap-2">
 			{#if !cropping}
-				<!-- Rotation buttons -->
 				<Button
 					variant="ghost"
 					size="sm"
@@ -271,7 +481,6 @@
 					裁切
 				</Button>
 			{:else}
-				<!-- Crop aspect presets -->
 				{#each ['free', '1:1', '4:3', '16:9', '3:2'] as preset}
 					<Button
 						variant={aspectPreset === preset ? 'secondary' : 'ghost'}
@@ -306,29 +515,155 @@
 		</div>
 	</div>
 
-	<!-- Image area -->
-	<div
-		class="relative flex flex-1 items-center justify-center overflow-hidden"
-		bind:this={containerEl}
-	>
-		<div class="relative" style="transform: rotate({rotation}deg); transition: transform 0.3s ease">
-			<img
-				bind:this={imgEl}
-				src={imageUrl}
-				alt="Editing"
-				class="max-h-[85vh] max-w-[90vw] object-contain"
-				onload={updateDisplaySize}
-			/>
-
-			{#if cropping && displayWidth > 0 && displayHeight > 0}
-				<CropOverlay
-					containerWidth={displayWidth}
-					containerHeight={displayHeight}
-					aspectRatio={aspectRatioValue}
-					{crop}
-					onCropChange={handleCropChange}
+	<div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+		<div
+			class="relative flex flex-1 items-center justify-center overflow-hidden"
+			bind:this={containerEl}
+		>
+			<div class="relative" style="transform: rotate({rotation}deg); transition: transform 0.3s ease">
+				<img
+					bind:this={imgEl}
+					src={imageUrl}
+					alt="Editing"
+					class="max-h-[75vh] max-w-[90vw] object-contain lg:max-h-[85vh]"
+					onload={updateDisplaySize}
 				/>
-			{/if}
+
+				{#if cropping && displayWidth > 0 && displayHeight > 0}
+					<CropOverlay
+						containerWidth={displayWidth}
+						containerHeight={displayHeight}
+						aspectRatio={aspectRatioValue}
+						{crop}
+						onCropChange={handleCropChange}
+					/>
+				{/if}
+			</div>
 		</div>
+
+		<aside
+			class="w-full overflow-y-auto border-t border-white/10 bg-zinc-950/95 p-4 lg:w-[360px] lg:border-t-0 lg:border-l"
+		>
+			<div class="space-y-5">
+				<div>
+					<p class="text-xs tracking-[0.2em] text-white/40 uppercase">照片資訊</p>
+					<p class="mt-1 text-sm text-white/60">{photo.originalFilename}</p>
+				</div>
+
+				<div class="space-y-2">
+					<Label for="photo-title" class="text-white/80">標題</Label>
+					<Input
+						id="photo-title"
+						bind:value={titleValue}
+						placeholder="輸入標題"
+						class="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+						disabled={!canEditMetadata}
+					/>
+				</div>
+
+				<div class="space-y-2">
+					<Label for="photo-description" class="text-white/80">描述</Label>
+					<textarea
+						id="photo-description"
+						bind:value={descriptionValue}
+						rows="4"
+						placeholder="輸入描述"
+						class="flex min-h-24 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						disabled={!canEditMetadata}
+					></textarea>
+				</div>
+
+				<div class="space-y-3">
+					<div class="flex items-center justify-between gap-2">
+						<Label for="photo-tags" class="text-white/80">標籤</Label>
+						{#if tagsLoaded}
+							<span class="text-xs text-white/35">{allTags.length} 個現有 tag</span>
+						{/if}
+					</div>
+
+					<div class="flex flex-wrap gap-2">
+						{#if selectedTags.length === 0}
+							<span class="text-sm text-white/35">尚未設定 tag</span>
+						{:else}
+							{#each selectedTags as tag (tag.id)}
+								<span
+									class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white"
+								>
+									{tag.name}
+									<button
+										type="button"
+										class="text-white/50 transition hover:text-white"
+										onclick={() => removeTag(tag.id)}
+										aria-label={`移除 ${tag.name}`}
+										disabled={!canEditMetadata}
+									>
+										×
+									</button>
+								</span>
+							{/each}
+						{/if}
+					</div>
+
+					<div class="flex gap-2">
+						<Input
+							id="photo-tags"
+							bind:value={tagInput}
+							list={`photo-tag-suggestions-${photo.id}`}
+							placeholder="輸入後按 Enter，可選既有 tag 或建立新 tag"
+							class="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+							onkeydown={handleTagInputKeydown}
+							disabled={!canEditMetadata}
+						/>
+						<Button
+							variant="secondary"
+							disabled={!canEditMetadata || !tagInput.trim() || creatingTag}
+							onclick={() => addTagFromInput()}
+						>
+							加入
+						</Button>
+					</div>
+					<datalist id={`photo-tag-suggestions-${photo.id}`}>
+						{#each filteredTagSuggestions as tag (tag.id)}
+							<option value={tag.name}></option>
+						{/each}
+					</datalist>
+
+					{#if filteredTagSuggestions.length > 0}
+						<div class="flex flex-wrap gap-2">
+							{#each filteredTagSuggestions as tag (tag.id)}
+								<button
+									type="button"
+									class="rounded-full border border-white/10 px-3 py-1 text-xs text-white/70 transition hover:border-white/25 hover:text-white"
+									onclick={() => addTagFromInput(tag.name)}
+									disabled={!canEditMetadata}
+								>
+									{tag.name}
+								</button>
+							{/each}
+						</div>
+					{/if}
+
+					{#if tagsLoadError && canEditMetadata}
+						<p class="text-sm text-amber-300">{tagsLoadError}</p>
+					{/if}
+				</div>
+
+				<div class="space-y-2">
+					{#if metadataError}
+						<p class="text-sm text-red-300">{metadataError}</p>
+					{/if}
+					{#if metadataSuccess}
+						<p class="text-sm text-emerald-300">{metadataSuccess}</p>
+					{/if}
+					<Button
+						class="w-full"
+						disabled={!canEditMetadata || savingMetadata || creatingTag}
+						onclick={saveMetadata}
+					>
+						{savingMetadata ? '儲存中...' : '儲存照片資訊'}
+					</Button>
+				</div>
+			</div>
+		</aside>
 	</div>
 </div>

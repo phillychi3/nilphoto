@@ -23,6 +23,7 @@
 		url?: string;
 		thumbnailUrl?: string | null;
 		createdAt?: string;
+		tags?: Tag[];
 		exif: {
 			cameraMake: string | null;
 			cameraModel: string | null;
@@ -39,6 +40,19 @@
 		} | null;
 	}
 
+	interface Tag {
+		id: string;
+		name: string;
+	}
+
+	type PhotoUpdate = {
+		id: string;
+		title: string | null;
+		description?: string | null;
+		originalFilename: string;
+		tags?: Tag[];
+	};
+
 	interface Album {
 		id: string;
 		name: string;
@@ -51,6 +65,7 @@
 	let album = $state<Album | null>(null);
 	let photos = $state<Photo[]>([]);
 	let canEdit = $state(false);
+	let canEditPhotoInfo = $state(false);
 	let loading = $state(true);
 	let error = $state('');
 	let lightboxIndex = $state(-1);
@@ -63,6 +78,7 @@
 	let showDesktopPanel = $state(false);
 	let showMobileDrawer = $state(false);
 	let sortBy = $state<'default' | 'date-asc' | 'date-desc' | 'name'>('default');
+	let activeTagId = $state('');
 
 	function setColumnFromSlider(index: number) {
 		columnCount = columnValues[index];
@@ -108,6 +124,7 @@
 			album = data.album;
 			photos = data.photos;
 			canEdit = data.canEdit;
+			canEditPhotoInfo = data.canEditPhotoInfo ?? false;
 		} catch {
 			error = '載入失敗';
 		} finally {
@@ -124,12 +141,37 @@
 		columnCount === 0 ? 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4' : ''
 	);
 
+	let albumTags = $derived.by(() => {
+		const deduped = new Map<string, Tag>();
+		for (const photo of photos) {
+			for (const tag of photo.tags || []) {
+				if (!deduped.has(tag.id)) deduped.set(tag.id, tag);
+			}
+		}
+		return [...deduped.values()].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+	});
+
+	let tagUsageCounts = $derived.by(() => {
+		const counts = new Map<string, number>();
+		for (const photo of photos) {
+			for (const tag of photo.tags || []) {
+				counts.set(tag.id, (counts.get(tag.id) || 0) + 1);
+			}
+		}
+		return counts;
+	});
+
+	let filteredPhotos = $derived.by(() => {
+		if (!activeTagId) return photos;
+		return photos.filter((photo) => photo.tags?.some((tag) => tag.id === activeTagId));
+	});
+
 	function getPhotoDate(photo: Photo): string {
 		return photo.exif?.takenAt ?? photo.createdAt ?? '';
 	}
 
 	let sortedPhotos = $derived.by(() => {
-		const arr = [...photos];
+		const arr = [...filteredPhotos];
 
 		let sorted: Photo[];
 		switch (sortBy) {
@@ -177,10 +219,13 @@
 	}
 
 	function selectAll() {
-		if (selectedIds.size === photos.length) {
+		const visibleIds = sortedPhotos.map((photo) => photo.id);
+		const allVisibleSelected =
+			visibleIds.length > 0 && visibleIds.every((photoId) => selectedIds.has(photoId));
+		if (allVisibleSelected) {
 			clearSelection();
 		} else {
-			selectedIds = new Set(photos.map((p) => p.id));
+			selectedIds = new Set(visibleIds);
 		}
 	}
 
@@ -299,6 +344,16 @@
 		}
 	}
 
+	function handlePhotoUpdated(updatedPhoto: PhotoUpdate) {
+		photos = photos.map((photo) => (photo.id === updatedPhoto.id ? { ...photo, ...updatedPhoto } : photo));
+	}
+
+	$effect(() => {
+		if (activeTagId && !albumTags.some((tag) => tag.id === activeTagId)) {
+			activeTagId = '';
+		}
+	});
+
 	let panelContainerRef = $state<HTMLElement | null>(null);
 
 	function handleWindowClick(e: MouseEvent) {
@@ -324,7 +379,7 @@
 			clearSelection();
 		} else if (e.key === 'Enter' && selectedIds.size > 0) {
 			const firstId = [...selectedIds][0];
-			const idx = photos.findIndex((p) => p.id === firstId);
+			const idx = sortedPhotos.findIndex((p) => p.id === firstId);
 			if (idx >= 0) lightboxIndex = idx;
 		}
 	}
@@ -353,7 +408,12 @@
 		<nav class="mx-auto flex h-14 items-center justify-between px-4">
 			<div class="flex items-center gap-3">
 				<h1 class="text-lg font-bold tracking-tight">{album.name}</h1>
-				<span class="text-sm text-muted-foreground">{photos.length}</span>
+				<span class="text-sm text-muted-foreground">
+					{sortedPhotos.length}
+					{#if activeTagId}
+						/ {photos.length}
+					{/if}
+				</span>
 			</div>
 			<div class="relative" bind:this={panelContainerRef}>
 				<button
@@ -494,6 +554,32 @@
 			<p class="mb-4 text-muted-foreground">{album.description}</p>
 		{/if}
 
+		{#if albumTags.length > 0}
+			<div class="mb-4 flex flex-wrap items-center gap-2">
+				<button
+					class="rounded-full border px-3 py-1 text-sm transition-colors {activeTagId
+						? 'border-border text-muted-foreground hover:bg-accent'
+						: 'border-primary bg-primary/10 text-primary'}"
+					onclick={() => (activeTagId = '')}
+				>
+					全部
+				</button>
+				{#each albumTags as tag (tag.id)}
+					<button
+						class="rounded-full border px-3 py-1 text-sm transition-colors {activeTagId === tag.id
+							? 'border-primary bg-primary/10 text-primary'
+							: 'border-border text-muted-foreground hover:bg-accent'}"
+						onclick={() => {
+							activeTagId = activeTagId === tag.id ? '' : tag.id;
+						}}
+					>
+						{tag.name}
+						<span class="ml-1 text-xs opacity-70">{tagUsageCounts.get(tag.id) || 0}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+
 		{#if selectMode}
 			<div
 				class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3"
@@ -525,6 +611,10 @@
 		{#if photos.length === 0}
 			<div class="flex flex-col items-center justify-center py-20">
 				<p class="text-muted-foreground">此相簿還沒有圖片</p>
+			</div>
+		{:else if sortedPhotos.length === 0}
+			<div class="flex flex-col items-center justify-center py-20">
+				<p class="text-muted-foreground">目前沒有符合此 tag 的照片</p>
 			</div>
 		{:else}
 			<div class="photo-grid {columnClass} gap-1" style={columnStyle}>
@@ -613,5 +703,12 @@
 		{/if}
 	</div>
 
-	<Lightbox photos={sortedPhotos} bind:index={lightboxIndex} {canEdit} {getPhotoUrl} />
+	<Lightbox
+		photos={sortedPhotos}
+		bind:index={lightboxIndex}
+		canEdit={true}
+		canEditMetadata={canEditPhotoInfo}
+		{getPhotoUrl}
+		onPhotoUpdated={handlePhotoUpdated}
+	/>
 {/if}

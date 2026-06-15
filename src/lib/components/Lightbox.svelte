@@ -2,6 +2,11 @@
 	import PhotoEditor from './PhotoEditor.svelte';
 	import * as Drawer from '$lib/components/ui/drawer';
 
+	interface Tag {
+		id: string;
+		name: string;
+	}
+
 	interface Photo {
 		id: string;
 		filename?: string;
@@ -14,6 +19,7 @@
 		storagePath: string;
 		thumbnailPath: string | null;
 		createdAt?: string;
+		tags?: Tag[];
 		exif: {
 			cameraMake: string | null;
 			cameraModel: string | null;
@@ -30,19 +36,36 @@
 		} | null;
 	}
 
+	interface PhotoUpdate {
+		id: string;
+		title: string | null;
+		description?: string | null;
+		originalFilename: string;
+		tags?: Tag[];
+	}
+
 	let {
 		photos,
 		index = $bindable(-1),
 		canEdit = false,
-		getPhotoUrl
+		canEditMetadata = true,
+		getPhotoUrl,
+		onPhotoUpdated
 	}: {
 		photos: Photo[];
 		index: number;
 		canEdit?: boolean;
+		canEditMetadata?: boolean;
 		getPhotoUrl: (
-			photo: { storagePath: string; thumbnailPath: string | null; url?: string; thumbnailUrl?: string | null },
+			photo: {
+				storagePath: string;
+				thumbnailPath: string | null;
+				url?: string;
+				thumbnailUrl?: string | null;
+			},
 			thumbnail?: boolean
 		) => string;
+		onPhotoUpdated?: (photo: PhotoUpdate) => void;
 	} = $props();
 
 	let editorOpen = $state(false);
@@ -689,6 +712,17 @@
 						{#if photo.description}
 							<p class="mt-1 text-xs text-white/60">{photo.description}</p>
 						{/if}
+						{#if photo.tags && photo.tags.length > 0}
+							<div class="mt-3 flex flex-wrap gap-2">
+								{#each photo.tags as tag (tag.id)}
+									<span
+										class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/75"
+									>
+										{tag.name}
+									</span>
+								{/each}
+							</div>
+						{/if}
 					</div>
 
 					{#if histogramReady}
@@ -854,6 +888,17 @@
 							<p class="text-xs text-muted-foreground">{photo.originalFilename}</p>
 							{#if photo.description}
 								<p class="mt-1 text-xs text-muted-foreground">{photo.description}</p>
+							{/if}
+							{#if photo.tags && photo.tags.length > 0}
+								<div class="mt-3 flex flex-wrap gap-2">
+									{#each photo.tags as tag (tag.id)}
+										<span
+											class="rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] text-foreground/80"
+										>
+											{tag.name}
+										</span>
+									{/each}
+								</div>
 							{/if}
 						</div>
 
@@ -1022,7 +1067,10 @@
 			imageUrl={fullImageUrl || getPhotoUrl(photo)}
 			imageWidth={photo.width || 800}
 			imageHeight={photo.height || 600}
+			{photo}
+			{canEditMetadata}
 			onClose={() => (editorOpen = false)}
+			{onPhotoUpdated}
 		/>
 	{/if}
 {/if}
