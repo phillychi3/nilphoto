@@ -54,6 +54,9 @@
 		"vaul-svelte": "1.0.0-next.7",
 		"vite": "^7.2.6"
 	},
+	"pnpm": {
+		"onlyBuiltDependencies": ["sharp", "@node-rs/argon2"]
+	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.975.0",
 		"@aws-sdk/s3-request-presigner": "^3.975.0",
