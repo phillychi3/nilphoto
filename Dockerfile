@@ -2,7 +2,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN npm install -g pnpm@latest-10
 RUN pnpm install --frozen-lockfile
 COPY . .
