@@ -416,6 +416,9 @@
 						class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2"
 					>
 						<span class="text-sm">已選取 {selectedPhotoIds.size} 張</span>
+						<Button variant="ghost" size="sm" onclick={selectAllPhotos}>
+							{selectedPhotoIds.size === albumPhotos.length ? '取消全選' : '全選'}
+						</Button>
 						<Button variant="outline" size="sm" onclick={batchRemoveFromAlbum}>從相簿移除</Button>
 						<Button
 							variant="outline"

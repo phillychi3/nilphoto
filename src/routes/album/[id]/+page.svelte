@@ -78,7 +78,8 @@
 	let showDesktopPanel = $state(false);
 	let showMobileDrawer = $state(false);
 	let sortBy = $state<'default' | 'date-asc' | 'date-desc' | 'name'>('default');
-	let activeTagId = $state('');
+	let activeTagIds = $state<Set<string>>(new Set());
+	let tagMatchMode = $state<'all' | 'any'>('all');
 
 	function setColumnFromSlider(index: number) {
 		columnCount = columnValues[index];
@@ -162,9 +163,22 @@
 	});
 
 	let filteredPhotos = $derived.by(() => {
-		if (!activeTagId) return photos;
-		return photos.filter((photo) => photo.tags?.some((tag) => tag.id === activeTagId));
+		if (activeTagIds.size === 0) return photos;
+		const selected = [...activeTagIds];
+		return photos.filter((photo) => {
+			const photoTagIds = new Set(photo.tags?.map((tag) => tag.id));
+			return tagMatchMode === 'all'
+				? selected.every((id) => photoTagIds.has(id))
+				: selected.some((id) => photoTagIds.has(id));
+		});
 	});
+
+	function toggleTagFilter(id: string) {
+		const next = new Set(activeTagIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		activeTagIds = next;
+	}
 
 	function getPhotoDate(photo: Photo): string {
 		return photo.exif?.takenAt ?? photo.createdAt ?? '';
@@ -351,8 +365,9 @@
 	}
 
 	$effect(() => {
-		if (activeTagId && !albumTags.some((tag) => tag.id === activeTagId)) {
-			activeTagId = '';
+		const stale = [...activeTagIds].filter((id) => !albumTags.some((tag) => tag.id === id));
+		if (stale.length > 0) {
+			activeTagIds = new Set([...activeTagIds].filter((id) => !stale.includes(id)));
 		}
 	});
 
@@ -412,7 +427,7 @@
 				<h1 class="text-lg font-bold tracking-tight">{album.name}</h1>
 				<span class="text-sm text-muted-foreground">
 					{sortedPhotos.length}
-					{#if activeTagId}
+					{#if activeTagIds.size > 0}
 						/ {photos.length}
 					{/if}
 				</span>
@@ -559,26 +574,44 @@
 		{#if albumTags.length > 0}
 			<div class="mb-4 flex flex-wrap items-center gap-2">
 				<button
-					class="rounded-full border px-3 py-1 text-sm transition-colors {activeTagId
+					class="rounded-full border px-3 py-1 text-sm transition-colors {activeTagIds.size > 0
 						? 'border-border text-muted-foreground hover:bg-accent'
 						: 'border-primary bg-primary/10 text-primary'}"
-					onclick={() => (activeTagId = '')}
+					onclick={() => (activeTagIds = new Set())}
 				>
 					全部
 				</button>
 				{#each albumTags as tag (tag.id)}
 					<button
-						class="rounded-full border px-3 py-1 text-sm transition-colors {activeTagId === tag.id
+						class="rounded-full border px-3 py-1 text-sm transition-colors {activeTagIds.has(tag.id)
 							? 'border-primary bg-primary/10 text-primary'
 							: 'border-border text-muted-foreground hover:bg-accent'}"
-						onclick={() => {
-							activeTagId = activeTagId === tag.id ? '' : tag.id;
-						}}
+						onclick={() => toggleTagFilter(tag.id)}
 					>
 						{tag.name}
 						<span class="ml-1 text-xs opacity-70">{tagUsageCounts.get(tag.id) || 0}</span>
 					</button>
 				{/each}
+				{#if activeTagIds.size > 1}
+					<div class="ml-auto flex overflow-hidden rounded-md border text-xs">
+						<button
+							class="px-2.5 py-1 transition-colors {tagMatchMode === 'all'
+								? 'bg-primary/10 text-primary'
+								: 'text-muted-foreground hover:bg-accent'}"
+							onclick={() => (tagMatchMode = 'all')}
+						>
+							符合全部
+						</button>
+						<button
+							class="border-l px-2.5 py-1 transition-colors {tagMatchMode === 'any'
+								? 'bg-primary/10 text-primary'
+								: 'text-muted-foreground hover:bg-accent'}"
+							onclick={() => (tagMatchMode = 'any')}
+						>
+							符合任一
+						</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 
@@ -587,6 +620,14 @@
 				class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3"
 			>
 				<span class="text-sm font-medium">已選取 {selectedIds.size} 張</span>
+				<button
+					class="rounded-md border px-3 py-1 text-sm hover:bg-accent"
+					onclick={selectAll}
+				>
+					{sortedPhotos.length > 0 && sortedPhotos.every((photo) => selectedIds.has(photo.id))
+						? '取消全選'
+						: '全選'}
+				</button>
 				<button
 					class="rounded-md border px-3 py-1 text-sm hover:bg-accent"
 					onclick={downloadSelected}

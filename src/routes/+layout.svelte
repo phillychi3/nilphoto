@@ -40,6 +40,18 @@
 			<nav class="mx-auto flex h-14 items-center justify-between px-4">
 				<a href="/" class="text-lg font-bold tracking-tight">{data.siteName}</a>
 				<div class="flex items-center gap-3">
+					{#if data.ownerName}
+						<span class="text-sm text-muted-foreground">{data.ownerName}</span>
+					{/if}
+					{#each data.headerLinks as link (link.url + link.label)}
+						<a
+							href={link.url}
+							class="text-sm text-muted-foreground hover:text-foreground"
+							{...link.url.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' }}
+						>
+							{link.label}
+						</a>
+					{/each}
 					{#if user}
 						{#if user.role === 'admin'}
 							<a href="/admin/settings" class="text-sm text-muted-foreground hover:text-foreground">

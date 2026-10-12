@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { refreshAll } from '$app/navigation';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
@@ -10,6 +11,8 @@
 	// ===== Site Settings =====
 	let siteName = $state('');
 	let siteDescription = $state('');
+	let ownerName = $state('');
+	let headerLinks = $state<{ label: string; url: string }[]>([]);
 	let savingSite = $state(false);
 	let siteMessage = $state('');
 
@@ -74,6 +77,8 @@
 			const data = await res.json();
 			siteName = (data.settings?.site_name as string) || '';
 			siteDescription = (data.settings?.site_description as string) || '';
+			ownerName = (data.settings?.owner_name as string) || '';
+			headerLinks = Array.isArray(data.settings?.header_links) ? data.settings.header_links : [];
 		} catch {
 			// ignore
 		}
@@ -89,11 +94,16 @@
 				body: JSON.stringify({
 					settings: {
 						site_name: siteName.trim(),
-						site_description: siteDescription.trim()
+						site_description: siteDescription.trim(),
+						owner_name: ownerName.trim(),
+						header_links: headerLinks
+							.map((link) => ({ label: link.label.trim(), url: link.url.trim() }))
+							.filter((link) => link.label && link.url)
 					}
 				})
 			});
 			if (res.ok) {
+				await refreshAll();
 				siteMessage = '已儲存';
 				setTimeout(() => (siteMessage = ''), 2000);
 			}
@@ -321,6 +331,43 @@
 				<div class="space-y-2">
 					<Label for="site-desc">站點描述</Label>
 					<Input id="site-desc" bind:value={siteDescription} placeholder="Photo Gallery" />
+				</div>
+				<div class="space-y-2">
+					<Label for="owner-name">使用者名稱</Label>
+					<Input
+						id="owner-name"
+						bind:value={ownerName}
+						placeholder="顯示在頁首右側，留空則不顯示"
+					/>
+				</div>
+				<div class="space-y-2">
+					<Label>頁首連結</Label>
+					<p class="text-xs text-muted-foreground">
+						顯示在登入按鈕左邊。網址可用 https://、mailto: 或站內路徑（/ 開頭）
+					</p>
+					{#each headerLinks as link, i (i)}
+						<div class="flex items-center gap-2">
+							<Input bind:value={link.label} placeholder="名稱" class="w-40" />
+							<Input bind:value={link.url} placeholder="https://..." class="flex-1" />
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								class="text-destructive hover:text-destructive"
+								onclick={() => (headerLinks = headerLinks.filter((_, j) => j !== i))}
+							>
+								移除
+							</Button>
+						</div>
+					{/each}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onclick={() => (headerLinks = [...headerLinks, { label: '', url: '' }])}
+					>
+						新增連結
+					</Button>
 				</div>
 				<div class="flex items-center gap-3">
 					<Button type="submit" disabled={savingSite}>
