@@ -3,6 +3,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { page } from '$app/state';
+	import DownloadProgress from '#lib/components/DownloadProgress.svelte';
 
 	let { children, data } = $props();
 	let isAlbumPage = $derived(page.route?.id?.startsWith('/album/') ?? false);
@@ -73,4 +74,6 @@
 	<main>
 		{@render children()}
 	</main>
+
+	<DownloadProgress />
 </div>

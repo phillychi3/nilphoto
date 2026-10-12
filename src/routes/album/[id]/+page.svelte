@@ -7,7 +7,7 @@
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Check from '@lucide/svelte/icons/check';
-	import { downloadPhotos } from '#lib/utils/download.js';
+	import { downloadPhotos, isDownloading } from '#lib/utils/download.svelte.js';
 
 	interface Photo {
 		id: string;
@@ -620,19 +620,17 @@
 				class="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3"
 			>
 				<span class="text-sm font-medium">已選取 {selectedIds.size} 張</span>
-				<button
-					class="rounded-md border px-3 py-1 text-sm hover:bg-accent"
-					onclick={selectAll}
-				>
+				<button class="rounded-md border px-3 py-1 text-sm hover:bg-accent" onclick={selectAll}>
 					{sortedPhotos.length > 0 && sortedPhotos.every((photo) => selectedIds.has(photo.id))
 						? '取消全選'
 						: '全選'}
 				</button>
 				<button
-					class="rounded-md border px-3 py-1 text-sm hover:bg-accent"
+					class="rounded-md border px-3 py-1 text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
 					onclick={downloadSelected}
+					disabled={isDownloading()}
 				>
-					下載
+					{isDownloading() ? '下載中…' : '下載'}
 				</button>
 				{#if canEdit && !isSharedView}
 					<button

@@ -52,7 +52,9 @@ export async function applyPhotoTagChanges(
 			const existing = await db
 				.select({ photoId: photoTags.photoId, tagId: photoTags.tagId })
 				.from(photoTags)
-				.where(and(inArray(photoTags.photoId, validPhotoIds), inArray(photoTags.tagId, validTagIds)));
+				.where(
+					and(inArray(photoTags.photoId, validPhotoIds), inArray(photoTags.tagId, validTagIds))
+				);
 			const existingKeys = new Set(existing.map((r) => `${r.photoId}:${r.tagId}`));
 
 			rowsToInsert = validPhotoIds.flatMap((photoId) =>

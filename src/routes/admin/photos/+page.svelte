@@ -8,7 +8,7 @@
 	import Lightbox from '#lib/components/Lightbox.svelte';
 	import ContextMenu from '#lib/components/ContextMenu.svelte';
 	import DragSelect from '#lib/components/DragSelect.svelte';
-	import { downloadPhotos } from '#lib/utils/download.js';
+	import { downloadPhotos, isDownloading } from '#lib/utils/download.svelte.js';
 
 	interface Album {
 		id: string;
@@ -586,7 +586,9 @@
 				>
 					加入相簿
 				</Button>
-				<Button variant="outline" size="sm" onclick={downloadSelected}>下載</Button>
+				<Button variant="outline" size="sm" onclick={downloadSelected} disabled={isDownloading()}>
+					{isDownloading() ? '下載中…' : '下載'}
+				</Button>
 				<Button
 					variant="outline"
 					size="sm"
