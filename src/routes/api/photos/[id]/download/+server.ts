@@ -1,8 +1,8 @@
 import { type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { photos } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { photos } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
-import { getStorage, getContentType } from '$lib/server/storage';
+import { getStorage, getContentType } from '#lib/server/storage/index.js';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	const photo = await db.query.photos.findFirst({

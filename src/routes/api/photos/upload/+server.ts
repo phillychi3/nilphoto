@@ -1,17 +1,21 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { photos, photoExif, albums, albumPhotos } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { photos, photoExif, albums, albumPhotos } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
-import { getStorage, generateStorageKey, getDefaultStorageProvider } from '$lib/server/storage';
-import { processImage, isValidImageType, MAX_FILE_SIZE } from '$lib/server/services/image';
+import {
+	getStorage,
+	generateStorageKey,
+	getDefaultStorageProvider
+} from '#lib/server/storage/index.js';
+import { processImage, isValidImageType, MAX_FILE_SIZE } from '#lib/server/services/image.js';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	if (locals.user.role !== 'admin') {
-		return json({ error: '沒有權限上傳' }, { status: 403 });
+		return Response.json({ error: '沒有權限上傳' }, { status: 403 });
 	}
 
 	try {
@@ -22,15 +26,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const description = formData.get('description') as string | null;
 
 		if (!file) {
-			return json({ error: '請選擇檔案' }, { status: 400 });
+			return Response.json({ error: '請選擇檔案' }, { status: 400 });
 		}
 
 		if (!isValidImageType(file.type)) {
-			return json({ error: '不支援的檔案格式' }, { status: 400 });
+			return Response.json({ error: '不支援的檔案格式' }, { status: 400 });
 		}
 
 		if (file.size > MAX_FILE_SIZE) {
-			return json({ error: '檔案大小超過限制 (最大 50MB)' }, { status: 400 });
+			return Response.json({ error: '檔案大小超過限制 (最大 50MB)' }, { status: 400 });
 		}
 
 		// Validate album if provided
@@ -40,11 +44,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			});
 
 			if (!album) {
-				return json({ error: '相簿不存在' }, { status: 404 });
+				return Response.json({ error: '相簿不存在' }, { status: 404 });
 			}
 
 			if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
-				return json({ error: '沒有權限上傳到此相簿' }, { status: 403 });
+				return Response.json({ error: '沒有權限上傳到此相簿' }, { status: 403 });
 			}
 		}
 
@@ -115,7 +119,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			storage.getUrl(thumbnailKey)
 		]);
 
-		return json({
+		return Response.json({
 			photo: {
 				id: newPhoto.id,
 				filename: newPhoto.filename,
@@ -140,6 +144,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 	} catch (error) {
 		console.error('Upload error:', error);
-		return json({ error: '上傳失敗' }, { status: 500 });
+		return Response.json({ error: '上傳失敗' }, { status: 500 });
 	}
 };

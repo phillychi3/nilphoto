@@ -1,9 +1,13 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { photos, photoExif, storageConfigs } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { photos, photoExif, storageConfigs } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
-import { getStorage, getDefaultStorageProvider, getContentType } from '$lib/server/storage';
-import { processImage } from '$lib/server/services/image';
+import {
+	getStorage,
+	getDefaultStorageProvider,
+	getContentType
+} from '#lib/server/storage/index.js';
+import { processImage } from '#lib/server/services/image.js';
 
 const IMAGE_EXTENSIONS = new Set([
 	'jpg',
@@ -24,7 +28,7 @@ function isImageKey(key: string): boolean {
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '需要管理員權限' }, { status: 403 });
+		return Response.json({ error: '需要管理員權限' }, { status: 403 });
 	}
 
 	const body = await request.json().catch(() => ({}));
@@ -122,8 +126,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			}
 		}
 
-		return json({ success: true, results });
+		return Response.json({ success: true, results });
 	} catch (err) {
-		return json({ error: `同步失敗: ${(err as Error).message}` }, { status: 500 });
+		return Response.json({ error: `同步失敗: ${(err as Error).message}` }, { status: 500 });
 	}
 };

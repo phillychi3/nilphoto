@@ -1,5 +1,5 @@
-import { db } from '$lib/server/db';
-import { storageConfigs } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { storageConfigs } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { S3Adapter } from './adapters/s3';
 import { LocalAdapter } from './adapters/local';

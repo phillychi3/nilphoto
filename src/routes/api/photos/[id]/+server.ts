@@ -1,8 +1,8 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { photos } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { photos } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
-import { getStorage } from '$lib/server/storage';
+import { getStorage } from '#lib/server/storage/index.js';
 
 // GET /api/photos/:id - Get photo detail
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	});
 
 	if (!photo) {
-		return json({ error: '圖片不存在' }, { status: 404 });
+		return Response.json({ error: '圖片不存在' }, { status: 404 });
 	}
 
 	// Check access: admin, uploader, or photo is in a public album
@@ -33,7 +33,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const inPublicAlbum = photo.albumPhotos.some((ap) => ap.album.isPublic);
 
 	if (!inPublicAlbum && !isUploader && !isAdmin) {
-		return json({ error: '沒有權限查看此圖片' }, { status: 403 });
+		return Response.json({ error: '沒有權限查看此圖片' }, { status: 403 });
 	}
 
 	const storage = await getStorage();
@@ -42,7 +42,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		photo.thumbnailPath ? storage.getUrl(photo.thumbnailPath) : Promise.resolve(null)
 	]);
 
-	return json({
+	return Response.json({
 		photo: {
 			...photo,
 			albums: photo.albumPhotos.map((ap) => ap.album),
@@ -58,7 +58,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 // PUT /api/photos/:id - Update photo info
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	const photo = await db.query.photos.findFirst({
@@ -66,11 +66,11 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	});
 
 	if (!photo) {
-		return json({ error: '圖片不存在' }, { status: 404 });
+		return Response.json({ error: '圖片不存在' }, { status: 404 });
 	}
 
 	if (photo.uploadedBy !== locals.user.id && locals.user.role !== 'admin') {
-		return json({ error: '沒有權限修改此圖片' }, { status: 403 });
+		return Response.json({ error: '沒有權限修改此圖片' }, { status: 403 });
 	}
 
 	const { title, description } = await request.json();
@@ -85,13 +85,13 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		.where(eq(photos.id, params.id!))
 		.returning();
 
-	return json({ photo: updated });
+	return Response.json({ photo: updated });
 };
 
 // DELETE /api/photos/:id - Delete photo
 export const DELETE: RequestHandler = async ({ params, locals }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	const photo = await db.query.photos.findFirst({
@@ -99,11 +99,11 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	});
 
 	if (!photo) {
-		return json({ error: '圖片不存在' }, { status: 404 });
+		return Response.json({ error: '圖片不存在' }, { status: 404 });
 	}
 
 	if (photo.uploadedBy !== locals.user.id && locals.user.role !== 'admin') {
-		return json({ error: '沒有權限刪除此圖片' }, { status: 403 });
+		return Response.json({ error: '沒有權限刪除此圖片' }, { status: 403 });
 	}
 
 	try {
@@ -119,5 +119,5 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	// Delete from DB (cascade handles exif, albumPhotos, photoTags)
 	await db.delete(photos).where(eq(photos.id, params.id!));
 
-	return json({ success: true });
+	return Response.json({ success: true });
 };

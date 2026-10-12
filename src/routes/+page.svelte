@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import Lightbox from '$lib/components/Lightbox.svelte';
+	import Lightbox from '#lib/components/Lightbox.svelte';
 
 	interface Photo {
 		id: string;
@@ -49,7 +49,12 @@
 	});
 
 	function getPhotoUrl(
-		photo: { storagePath: string; thumbnailPath: string | null; url?: string; thumbnailUrl?: string | null },
+		photo: {
+			storagePath: string;
+			thumbnailPath: string | null;
+			url?: string;
+			thumbnailUrl?: string | null;
+		},
 		thumbnail = false
 	): string {
 		if (thumbnail) {

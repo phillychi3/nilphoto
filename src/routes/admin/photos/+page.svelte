@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import Lightbox from '$lib/components/Lightbox.svelte';
-	import ContextMenu from '$lib/components/ContextMenu.svelte';
-	import DragSelect from '$lib/components/DragSelect.svelte';
-	import { downloadPhotos } from '$lib/utils/download';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import Lightbox from '#lib/components/Lightbox.svelte';
+	import ContextMenu from '#lib/components/ContextMenu.svelte';
+	import DragSelect from '#lib/components/DragSelect.svelte';
+	import { downloadPhotos } from '#lib/utils/download.js';
 
 	interface Album {
 		id: string;
@@ -312,7 +312,12 @@
 	}
 
 	function getPhotoUrl(
-		photo: { storagePath: string; thumbnailPath: string | null; url?: string; thumbnailUrl?: string | null },
+		photo: {
+			storagePath: string;
+			thumbnailPath: string | null;
+			url?: string;
+			thumbnailUrl?: string | null;
+		},
 		thumbnail = false
 	): string {
 		if (thumbnail) {
@@ -366,7 +371,9 @@
 	}
 
 	function handlePhotoUpdated(updatedPhoto: PhotoUpdate) {
-		photos = photos.map((photo) => (photo.id === updatedPhoto.id ? { ...photo, ...updatedPhoto } : photo));
+		photos = photos.map((photo) =>
+			photo.id === updatedPhoto.id ? { ...photo, ...updatedPhoto } : photo
+		);
 		for (const tag of updatedPhoto.tags || []) {
 			if (!allTags.some((existingTag) => existingTag.id === tag.id)) {
 				allTags = [...allTags, tag].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
@@ -512,7 +519,8 @@
 									{#each allTags as tag (tag.id)}
 										<button
 											type="button"
-											class="rounded-full border px-3 py-1 text-xs transition-colors {filterTag === tag.name
+											class="rounded-full border px-3 py-1 text-xs transition-colors {filterTag ===
+											tag.name
 												? 'border-primary bg-primary/10 text-primary'
 												: 'border-border text-muted-foreground hover:bg-accent'}"
 											onclick={() => {

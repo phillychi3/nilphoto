@@ -1,12 +1,12 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { siteSettings } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { siteSettings } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
 
 // GET /api/site-settings - Get all settings
 export const GET: RequestHandler = async ({ locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const settings = await db.query.siteSettings.findMany();
@@ -15,19 +15,19 @@ export const GET: RequestHandler = async ({ locals }) => {
 		result[s.key] = s.value;
 	}
 
-	return json({ settings: result });
+	return Response.json({ settings: result });
 };
 
 // PUT /api/site-settings - Update settings
 export const PUT: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { settings } = await request.json();
 
 	if (!settings || typeof settings !== 'object') {
-		return json({ error: '無效的設定資料' }, { status: 400 });
+		return Response.json({ error: '無效的設定資料' }, { status: 400 });
 	}
 
 	for (const [key, value] of Object.entries(settings)) {
@@ -48,5 +48,5 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 		}
 	}
 
-	return json({ success: true });
+	return Response.json({ success: true });
 };

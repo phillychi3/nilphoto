@@ -1,8 +1,8 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { albums, albumPhotos } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { albums, albumPhotos } from '#lib/server/db/schema.js';
 import { eq, desc, or, and, asc } from 'drizzle-orm';
-import { resolvePhotoUrls, getStorage } from '$lib/server/storage';
+import { resolvePhotoUrls, getStorage } from '#lib/server/storage/index.js';
 
 function generateShareToken(): string {
 	return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		});
 
 		if (!featured) {
-			return json({ album: null, photos: [] });
+			return Response.json({ album: null, photos: [] });
 		}
 
 		const links = await db.query.albumPhotos.findMany({
@@ -49,7 +49,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 			})
 		);
 
-		return json({
+		return Response.json({
 			album: featured,
 			photos: photosWithUrls
 		});
@@ -85,23 +85,23 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		}
 	});
 
-	return json({ albums: albumList });
+	return Response.json({ albums: albumList });
 };
 
 // POST /api/albums - Create album
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	if (locals.user.role !== 'admin') {
-		return json({ error: '沒有權限建立相簿' }, { status: 403 });
+		return Response.json({ error: '沒有權限建立相簿' }, { status: 403 });
 	}
 
 	const { name, description, isPublic } = await request.json();
 
 	if (!name || typeof name !== 'string' || name.trim().length === 0) {
-		return json({ error: '請輸入相簿名稱' }, { status: 400 });
+		return Response.json({ error: '請輸入相簿名稱' }, { status: 400 });
 	}
 
 	const [newAlbum] = await db
@@ -115,5 +115,5 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		})
 		.returning();
 
-	return json({ album: newAlbum }, { status: 201 });
+	return Response.json({ album: newAlbum }, { status: 201 });
 };

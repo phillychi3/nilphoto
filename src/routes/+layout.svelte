@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
-	import { Button } from '$lib/components/ui/button';
+	import favicon from '#lib/assets/favicon.svg';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { page } from '$app/state';
 
 	let { children, data } = $props();

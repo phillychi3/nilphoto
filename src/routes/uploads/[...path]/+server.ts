@@ -1,7 +1,7 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { getStorage } from '$lib/server/storage';
+import { getStorage } from '#lib/server/storage/index.js';
 
 const MIME_TYPES: Record<string, string> = {
 	jpg: 'image/jpeg',

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import CropOverlay, { type CropRect } from './CropOverlay.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 
 	interface Tag {
 		id: string;
@@ -173,7 +173,9 @@
 			if (!tag) return;
 
 			if (!selectedTags.some((selectedTag) => selectedTag.id === tag.id)) {
-				selectedTags = [...selectedTags, tag].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+				selectedTags = [...selectedTags, tag].sort((a, b) =>
+					a.name.localeCompare(b.name, 'zh-Hant')
+				);
 			}
 			tagInput = '';
 		} catch (error) {
@@ -520,7 +522,10 @@
 			class="relative flex flex-1 items-center justify-center overflow-hidden"
 			bind:this={containerEl}
 		>
-			<div class="relative" style="transform: rotate({rotation}deg); transition: transform 0.3s ease">
+			<div
+				class="relative"
+				style="transform: rotate({rotation}deg); transition: transform 0.3s ease"
+			>
 				<img
 					bind:this={imgEl}
 					src={imageUrl}

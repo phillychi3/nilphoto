@@ -1,9 +1,9 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
+import type { RequestHandler } from '@sveltejs/kit';
 import { eq, and, gt, or, isNull } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { users, inviteCodes, inviteCodeUses, siteSettings } from '$lib/server/db/schema';
-import { hashPassword } from '$lib/server/password';
-import { createSession, generateSessionToken, setSessionTokenCookie } from '$lib/server/auth';
+import { db } from '#lib/server/db/index.js';
+import { users, inviteCodes, inviteCodeUses, siteSettings } from '#lib/server/db/schema.js';
+import { hashPassword } from '#lib/server/password.js';
+import { createSession, generateSessionToken, setSessionTokenCookie } from '#lib/server/auth.js';
 
 type RegistrationMode = 'open' | 'invite_only' | 'closed';
 
@@ -43,29 +43,29 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	// Validate input
 	if (!email || !password) {
-		return json({ error: '請輸入電子郵件和密碼' }, { status: 400 });
+		return Response.json({ error: '請輸入電子郵件和密碼' }, { status: 400 });
 	}
 
 	if (password.length < 8) {
-		return json({ error: '密碼長度至少需要 8 個字元' }, { status: 400 });
+		return Response.json({ error: '密碼長度至少需要 8 個字元' }, { status: 400 });
 	}
 
 	// Check registration mode
 	const registrationMode = await getRegistrationMode();
 
 	if (registrationMode === 'closed') {
-		return json({ error: '目前不開放註冊' }, { status: 403 });
+		return Response.json({ error: '目前不開放註冊' }, { status: 403 });
 	}
 
 	// Check invite code if required
 	let validatedInviteCodeId: string | undefined;
 	if (registrationMode === 'invite_only') {
 		if (!inviteCode) {
-			return json({ error: '需要邀請碼才能註冊' }, { status: 400 });
+			return Response.json({ error: '需要邀請碼才能註冊' }, { status: 400 });
 		}
 		const validation = await validateInviteCode(inviteCode);
 		if (!validation.valid) {
-			return json({ error: validation.error }, { status: 400 });
+			return Response.json({ error: validation.error }, { status: 400 });
 		}
 		validatedInviteCodeId = validation.codeId;
 	}
@@ -76,7 +76,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	});
 
 	if (existingUser) {
-		return json({ error: '此電子郵件已被註冊' }, { status: 400 });
+		return Response.json({ error: '此電子郵件已被註冊' }, { status: 400 });
 	}
 
 	// Check if this is the first user (make them admin)
@@ -119,7 +119,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	setSessionTokenCookie({ cookies } as any, token, session.expiresAt);
 
-	return json({
+	return Response.json({
 		user: {
 			id: newUser.id,
 			email: newUser.email,

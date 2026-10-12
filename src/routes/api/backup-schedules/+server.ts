@@ -1,12 +1,12 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { backupSchedules } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { backupSchedules } from '#lib/server/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 
 // GET /api/backup-schedules
 export const GET: RequestHandler = async ({ locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const schedules = await db.query.backupSchedules.findMany({
@@ -18,24 +18,24 @@ export const GET: RequestHandler = async ({ locals }) => {
 		}
 	});
 
-	return json({ schedules });
+	return Response.json({ schedules });
 };
 
 // POST /api/backup-schedules - Create schedule
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { storageConfigId, frequency, retentionDays, enabled } = await request.json();
 
 	if (!storageConfigId || !frequency) {
-		return json({ error: '請填寫必要欄位' }, { status: 400 });
+		return Response.json({ error: '請填寫必要欄位' }, { status: 400 });
 	}
 
 	const validFreqs = ['hourly', 'daily', 'weekly', 'monthly'];
 	if (!validFreqs.includes(frequency)) {
-		return json({ error: '無效的備份頻率' }, { status: 400 });
+		return Response.json({ error: '無效的備份頻率' }, { status: 400 });
 	}
 
 	const nextRun = computeNextRun(frequency);
@@ -51,19 +51,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		})
 		.returning();
 
-	return json({ schedule }, { status: 201 });
+	return Response.json({ schedule }, { status: 201 });
 };
 
 // PUT /api/backup-schedules - Update schedule
 export const PUT: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { id, enabled, frequency, retentionDays } = await request.json();
 
 	if (!id) {
-		return json({ error: '缺少排程 ID' }, { status: 400 });
+		return Response.json({ error: '缺少排程 ID' }, { status: 400 });
 	}
 
 	const updateData: Record<string, unknown> = {};
@@ -80,22 +80,22 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 		.where(eq(backupSchedules.id, id))
 		.returning();
 
-	return json({ schedule: updated });
+	return Response.json({ schedule: updated });
 };
 
 // DELETE /api/backup-schedules
 export const DELETE: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { id } = await request.json();
 	if (!id) {
-		return json({ error: '缺少排程 ID' }, { status: 400 });
+		return Response.json({ error: '缺少排程 ID' }, { status: 400 });
 	}
 
 	await db.delete(backupSchedules).where(eq(backupSchedules.id, id));
-	return json({ success: true });
+	return Response.json({ success: true });
 };
 
 function computeNextRun(frequency: string): Date {

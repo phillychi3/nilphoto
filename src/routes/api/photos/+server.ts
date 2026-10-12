@@ -1,6 +1,6 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { photos, photoExif, photoTags } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { photos, photoExif, photoTags } from '#lib/server/db/schema.js';
 import { desc, count, like, or, and, eq, gte, lte, inArray, sql } from 'drizzle-orm';
 
 // GET /api/photos - List/search photos (admin only)
@@ -13,11 +13,11 @@ import { desc, count, like, or, and, eq, gte, lte, inArray, sql } from 'drizzle-
 //   tag - tag name filter
 export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	if (locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const page = parseInt(url.searchParams.get('page') || '1');
@@ -60,7 +60,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 		const [{ value: total }] = await db.select({ value: count() }).from(photos);
 
-		return json({
+		return Response.json({
 			photos: allPhotos.map((p) => ({
 				...p,
 				albums: p.albumPhotos.map((ap) => ap.album),
@@ -181,7 +181,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		}
 	});
 
-	return json({
+	return Response.json({
 		photos: matchingPhotos.map((p) => ({
 			...p,
 			albums: p.albumPhotos.map((ap) => ap.album),

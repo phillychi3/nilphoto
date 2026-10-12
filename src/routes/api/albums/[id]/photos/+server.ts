@@ -1,12 +1,12 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { albums, albumPhotos, photos } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { albums, albumPhotos, photos } from '#lib/server/db/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 
 // POST /api/albums/:id/photos - Add photos to album
 export const POST: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	const { id } = params;
@@ -16,17 +16,17 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	});
 
 	if (!album) {
-		return json({ error: '相簿不存在' }, { status: 404 });
+		return Response.json({ error: '相簿不存在' }, { status: 404 });
 	}
 
 	if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { photoIds } = await request.json();
 
 	if (!Array.isArray(photoIds) || photoIds.length === 0) {
-		return json({ error: '請提供照片 ID' }, { status: 400 });
+		return Response.json({ error: '請提供照片 ID' }, { status: 400 });
 	}
 
 	// Verify photos exist
@@ -55,13 +55,13 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		);
 	}
 
-	return json({ added: newIds.length });
+	return Response.json({ added: newIds.length });
 };
 
 // DELETE /api/albums/:id/photos - Remove photos from album
 export const DELETE: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	const { id } = params;
@@ -71,22 +71,22 @@ export const DELETE: RequestHandler = async ({ params, request, locals }) => {
 	});
 
 	if (!album) {
-		return json({ error: '相簿不存在' }, { status: 404 });
+		return Response.json({ error: '相簿不存在' }, { status: 404 });
 	}
 
 	if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { photoIds } = await request.json();
 
 	if (!Array.isArray(photoIds) || photoIds.length === 0) {
-		return json({ error: '請提供照片 ID' }, { status: 400 });
+		return Response.json({ error: '請提供照片 ID' }, { status: 400 });
 	}
 
 	await db
 		.delete(albumPhotos)
 		.where(and(eq(albumPhotos.albumId, id!), inArray(albumPhotos.photoId, photoIds)));
 
-	return json({ success: true });
+	return Response.json({ success: true });
 };

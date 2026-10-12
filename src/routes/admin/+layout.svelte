@@ -1,7 +1,7 @@
 <script lang="ts">
-	import AdminNav from '$lib/components/AdminNav.svelte';
-	import * as Drawer from '$lib/components/ui/drawer';
-	import { Button } from '$lib/components/ui/button';
+	import AdminNav from '#lib/components/AdminNav.svelte';
+	import * as Drawer from '#lib/components/ui/drawer/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { page } from '$app/state';
 
 	let { children } = $props();
@@ -60,10 +60,7 @@
 								<Drawer.Title>管理選單</Drawer.Title>
 							</Drawer.Header>
 							<div class="py-4">
-								<AdminNav
-									onNavigate={() => (drawerOpen = false)}
-									onLogout={handleLogout}
-								/>
+								<AdminNav onNavigate={() => (drawerOpen = false)} onLogout={handleLogout} />
 							</div>
 						</div>
 					</Drawer.Content>

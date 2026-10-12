@@ -1,5 +1,6 @@
-import { redirect, type Handle } from '@sveltejs/kit';
-import * as auth from '$lib/server/auth';
+import { redirect } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
+import * as auth from '#lib/server/auth.js';
 
 const protectedRoutes = ['/admin'];
 

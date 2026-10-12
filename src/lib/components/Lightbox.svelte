@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PhotoEditor from './PhotoEditor.svelte';
-	import * as Drawer from '$lib/components/ui/drawer';
+	import * as Drawer from '#lib/components/ui/drawer/index.js';
 
 	interface Tag {
 		id: string;

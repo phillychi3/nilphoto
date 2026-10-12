@@ -1,5 +1,5 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { invalidateSession, deleteSessionTokenCookie } from '$lib/server/auth';
+import type { RequestHandler } from '@sveltejs/kit';
+import { invalidateSession, deleteSessionTokenCookie } from '#lib/server/auth.js';
 
 export const POST: RequestHandler = async ({ locals, cookies }) => {
 	if (locals.session) {
@@ -8,5 +8,5 @@ export const POST: RequestHandler = async ({ locals, cookies }) => {
 
 	deleteSessionTokenCookie({ cookies } as any);
 
-	return json({ success: true });
+	return Response.json({ success: true });
 };

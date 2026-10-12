@@ -1,8 +1,8 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { albums, albumPhotos } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { albums, albumPhotos } from '#lib/server/db/schema.js';
 import { eq, asc } from 'drizzle-orm';
-import { resolvePhotoUrls, getStorage } from '$lib/server/storage';
+import { resolvePhotoUrls, getStorage } from '#lib/server/storage/index.js';
 
 // GET /api/albums/:id - Get album with photos
 export const GET: RequestHandler = async ({ params, locals, url }) => {
@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 	});
 
 	if (!album) {
-		return json({ error: '相簿不存在' }, { status: 404 });
+		return Response.json({ error: '相簿不存在' }, { status: 404 });
 	}
 
 	const isOwner = locals.user?.id === album.ownerId;
@@ -31,7 +31,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 	const hasShareToken = shareToken === album.shareToken;
 
 	if (!album.isPublic && !isOwner && !isAdmin && !hasShareToken) {
-		return json({ error: '沒有權限查看此相簿' }, { status: 403 });
+		return Response.json({ error: '沒有權限查看此相簿' }, { status: 403 });
 	}
 
 	// Get photos through album_photos junction
@@ -73,7 +73,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		})
 	);
 
-	return json({
+	return Response.json({
 		album,
 		photos: photosWithUrls,
 		canEdit: isOwner || isAdmin,
@@ -86,7 +86,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	const { id } = params;
 
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	const album = await db.query.albums.findFirst({
@@ -94,11 +94,11 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	});
 
 	if (!album) {
-		return json({ error: '相簿不存在' }, { status: 404 });
+		return Response.json({ error: '相簿不存在' }, { status: 404 });
 	}
 
 	if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
-		return json({ error: '沒有權限修改此相簿' }, { status: 403 });
+		return Response.json({ error: '沒有權限修改此相簿' }, { status: 403 });
 	}
 
 	const { name, description, isPublic, coverPhotoId } = await request.json();
@@ -109,7 +109,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
 	if (name !== undefined) {
 		if (typeof name !== 'string' || name.trim().length === 0) {
-			return json({ error: '相簿名稱不可為空' }, { status: 400 });
+			return Response.json({ error: '相簿名稱不可為空' }, { status: 400 });
 		}
 		updateData.name = name.trim();
 	}
@@ -134,7 +134,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 				where: (ap, { and, eq }) => and(eq(ap.albumId, id!), eq(ap.photoId, coverPhotoId))
 			});
 			if (!link) {
-				return json({ error: '封面圖片不存在於此相簿' }, { status: 400 });
+				return Response.json({ error: '封面圖片不存在於此相簿' }, { status: 400 });
 			}
 		}
 		updateData.coverPhotoId = coverPhotoId;
@@ -146,7 +146,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		.where(eq(albums.id, id!))
 		.returning();
 
-	return json({ album: updatedAlbum });
+	return Response.json({ album: updatedAlbum });
 };
 
 // DELETE /api/albums/:id - Delete album
@@ -154,7 +154,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	const { id } = params;
 
 	if (!locals.user) {
-		return json({ error: '請先登入' }, { status: 401 });
+		return Response.json({ error: '請先登入' }, { status: 401 });
 	}
 
 	const album = await db.query.albums.findFirst({
@@ -162,19 +162,19 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	});
 
 	if (!album) {
-		return json({ error: '相簿不存在' }, { status: 404 });
+		return Response.json({ error: '相簿不存在' }, { status: 404 });
 	}
 
 	if (album.isSystem) {
-		return json({ error: '系統相簿無法刪除' }, { status: 403 });
+		return Response.json({ error: '系統相簿無法刪除' }, { status: 403 });
 	}
 
 	if (album.ownerId !== locals.user.id && locals.user.role !== 'admin') {
-		return json({ error: '沒有權限刪除此相簿' }, { status: 403 });
+		return Response.json({ error: '沒有權限刪除此相簿' }, { status: 403 });
 	}
 
 	// Delete album (album_photos links cascade, photos themselves remain)
 	await db.delete(albums).where(eq(albums.id, id!));
 
-	return json({ success: true });
+	return Response.json({ success: true });
 };

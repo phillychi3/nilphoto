@@ -1,13 +1,13 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { backups, photos } from '$lib/server/db/schema';
+import type { RequestHandler } from '@sveltejs/kit';
+import { db } from '#lib/server/db/index.js';
+import { backups, photos } from '#lib/server/db/schema.js';
 import { desc, eq, count, and } from 'drizzle-orm';
-import { getStorage, LocalAdapter } from '$lib/server/storage';
+import { getStorage, LocalAdapter } from '#lib/server/storage/index.js';
 
 // GET /api/backups - List backups with stats
 export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const page = parseInt(url.searchParams.get('page') || '1');
@@ -56,7 +56,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		.from(backups)
 		.where(whereClause);
 
-	return json({
+	return Response.json({
 		backups: backupList,
 		stats: {
 			total: totalBackups.value,
@@ -77,13 +77,13 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 // If photoIds not provided, backs up all photos not yet backed up to this config
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user || locals.user.role !== 'admin') {
-		return json({ error: '沒有權限' }, { status: 403 });
+		return Response.json({ error: '沒有權限' }, { status: 403 });
 	}
 
 	const { storageConfigId, photoIds } = await request.json();
 
 	if (!storageConfigId) {
-		return json({ error: '請選擇備份儲存服務' }, { status: 400 });
+		return Response.json({ error: '請選擇備份儲存服務' }, { status: 400 });
 	}
 
 	// Validate storage config exists
@@ -91,10 +91,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		where: (sc, { eq }) => eq(sc.id, storageConfigId)
 	});
 	if (!config) {
-		return json({ error: '儲存設定不存在' }, { status: 404 });
+		return Response.json({ error: '儲存設定不存在' }, { status: 404 });
 	}
 
-	let targetPhotos: { id: string; storagePath: string; originalFilename: string; storageProvider: string }[];
+	let targetPhotos: {
+		id: string;
+		storagePath: string;
+		originalFilename: string;
+		storageProvider: string;
+	}[];
 
 	if (photoIds && photoIds.length > 0) {
 		// Specific photos
@@ -117,7 +122,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	if (targetPhotos.length === 0) {
-		return json({ message: '沒有需要備份的照片', created: 0 });
+		return Response.json({ message: '沒有需要備份的照片', created: 0 });
 	}
 
 	// Create backup records
@@ -132,7 +137,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	// Process backups in background (simplified - in production use a queue)
 	processBackups(storageConfigId, targetPhotos).catch(console.error);
 
-	return json(
+	return Response.json(
 		{ message: `已排程 ${targetPhotos.length} 張照片備份`, created: targetPhotos.length },
 		{ status: 201 }
 	);
@@ -140,7 +145,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 async function processBackups(
 	storageConfigId: string,
-	targetPhotos: { id: string; storagePath: string; originalFilename: string; storageProvider: string }[]
+	targetPhotos: {
+		id: string;
+		storagePath: string;
+		originalFilename: string;
+		storageProvider: string;
+	}[]
 ) {
 	const defaultStorage = await getStorage(); // Default storage
 	const localStorage = new LocalAdapter({

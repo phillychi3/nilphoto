@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import Lightbox from '$lib/components/Lightbox.svelte';
-	import ContextMenu from '$lib/components/ContextMenu.svelte';
-	import DragSelect from '$lib/components/DragSelect.svelte';
-	import * as Drawer from '$lib/components/ui/drawer';
+	import Lightbox from '#lib/components/Lightbox.svelte';
+	import ContextMenu from '#lib/components/ContextMenu.svelte';
+	import DragSelect from '#lib/components/DragSelect.svelte';
+	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Check from '@lucide/svelte/icons/check';
-	import { downloadPhotos } from '$lib/utils/download';
+	import { downloadPhotos } from '#lib/utils/download.js';
 
 	interface Photo {
 		id: string;
@@ -345,7 +345,9 @@
 	}
 
 	function handlePhotoUpdated(updatedPhoto: PhotoUpdate) {
-		photos = photos.map((photo) => (photo.id === updatedPhoto.id ? { ...photo, ...updatedPhoto } : photo));
+		photos = photos.map((photo) =>
+			photo.id === updatedPhoto.id ? { ...photo, ...updatedPhoto } : photo
+		);
 	}
 
 	$effect(() => {

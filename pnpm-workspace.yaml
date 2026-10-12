@@ -8,4 +8,4 @@ allowBuilds:
 onlyBuiltDependencies:
   - esbuild
   - sharp
-  - "@node-rs/argon2"
+  - '@node-rs/argon2'
