@@ -28,7 +28,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 
 	const isOwner = locals.user?.id === album.ownerId;
 	const isAdmin = locals.user?.role === 'admin';
-	const hasShareToken = shareToken === album.shareToken;
+	const hasShareToken = !!album.shareToken && shareToken === album.shareToken;
 
 	if (!album.isPublic && !isOwner && !isAdmin && !hasShareToken) {
 		return Response.json({ error: '沒有權限查看此相簿' }, { status: 403 });

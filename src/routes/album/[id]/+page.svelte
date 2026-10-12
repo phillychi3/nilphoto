@@ -405,7 +405,27 @@
 <svelte:window onkeydown={handleKeydown} onclick={handleWindowClick} />
 
 <svelte:head>
-	<title>{album?.name || 'Album'} - {page.data.siteName}</title>
+	<title>{album?.name || page.data.meta?.title || 'Album'} - {page.data.siteName}</title>
+	{#if page.data.meta}
+		{@const meta = page.data.meta}
+		<meta property="og:title" content={meta.title} />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={meta.url} />
+		<meta property="og:site_name" content={page.data.siteName} />
+		{#if meta.description}
+			<meta property="og:description" content={meta.description} />
+			<meta name="description" content={meta.description} />
+		{/if}
+		<meta name="twitter:card" content={meta.image ? 'summary_large_image' : 'summary'} />
+		<meta name="twitter:title" content={meta.title} />
+		{#if meta.description}
+			<meta name="twitter:description" content={meta.description} />
+		{/if}
+		{#if meta.image}
+			<meta property="og:image" content={meta.image} />
+			<meta name="twitter:image" content={meta.image} />
+		{/if}
+	{/if}
 </svelte:head>
 
 <ContextMenu bind:visible={ctxVisible} x={ctxX} y={ctxY} items={ctxItems} />
