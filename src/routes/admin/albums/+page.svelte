@@ -14,7 +14,7 @@
 		thumbnailUrl?: string | null;
 		title: string | null;
 		originalFilename: string;
-		photoTags?: { tag: { id: string; name: string } }[];
+		tags?: { id: string; name: string }[];
 	}
 
 	interface Album {
@@ -57,8 +57,12 @@
 	// Tags
 	let allTags = $state<Tag[]>([]);
 	let showTagDialog = $state(false);
-	let selectedTagIds = $state<Set<string>>(new Set());
+	// Tag state across the selected photos: 'all' = every photo has it, 'some' = only part of them
+	type TagState = 'all' | 'some' | 'none';
+	let initialTagStates = $state<Map<string, TagState>>(new Map());
+	let tagChanges = $state<Map<string, 'add' | 'remove'>>(new Map());
 	let newTagName = $state('');
+	let applyingTags = $state(false);
 
 	onMount(async () => {
 		await loadAlbums();
@@ -207,8 +211,44 @@
 	// Tags management
 	function openTagDialog() {
 		if (selectedPhotoIds.size === 0) return;
-		selectedTagIds = new Set();
+		const counts = new Map<string, number>();
+		for (const photo of albumPhotos) {
+			if (!selectedPhotoIds.has(photo.id)) continue;
+			for (const tag of photo.tags || []) {
+				counts.set(tag.id, (counts.get(tag.id) || 0) + 1);
+			}
+		}
+		const states = new Map<string, TagState>();
+		for (const [tagId, count] of counts) {
+			states.set(tagId, count === selectedPhotoIds.size ? 'all' : 'some');
+		}
+		initialTagStates = states;
+		tagChanges = new Map();
 		showTagDialog = true;
+	}
+
+	function getTagState(tagId: string): TagState {
+		const change = tagChanges.get(tagId);
+		if (change === 'add') return 'all';
+		if (change === 'remove') return 'none';
+		return initialTagStates.get(tagId) || 'none';
+	}
+
+	// Cycle: some → all → none → some; all ⇄ none
+	function toggleTag(tagId: string) {
+		const initial = initialTagStates.get(tagId) || 'none';
+		const current = getTagState(tagId);
+		const next = new Map(tagChanges);
+		if (current === 'all') {
+			if (initial === 'none') next.delete(tagId);
+			else next.set(tagId, 'remove');
+		} else if (current === 'none') {
+			if (initial === 'none') next.set(tagId, 'add');
+			else next.delete(tagId);
+		} else {
+			next.set(tagId, 'add');
+		}
+		tagChanges = next;
 	}
 
 	async function createTag() {
@@ -226,16 +266,32 @@
 
 	async function applyTags() {
 		if (selectedPhotoIds.size === 0) return;
-		const tagIds = [...selectedTagIds];
-		for (const photoId of selectedPhotoIds) {
-			await fetch(`/api/photos/${photoId}/tags`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ tagIds })
-			});
+		if (tagChanges.size === 0) {
+			showTagDialog = false;
+			return;
 		}
-		showTagDialog = false;
-		if (selectedAlbum) await loadAlbumPhotos(selectedAlbum.id);
+		const add: string[] = [];
+		const remove: string[] = [];
+		for (const [tagId, change] of tagChanges) {
+			(change === 'add' ? add : remove).push(tagId);
+		}
+		applyingTags = true;
+		try {
+			const res = await fetch('/api/photos/tags', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ photoIds: [...selectedPhotoIds], add, remove })
+			});
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				alert(data.error || '更新標籤失敗');
+				return;
+			}
+			showTagDialog = false;
+			if (selectedAlbum) await loadAlbumPhotos(selectedAlbum.id);
+		} finally {
+			applyingTags = false;
+		}
 	}
 
 	function getPhotoUrl(photo: Photo, thumbnail = true): string {
@@ -531,7 +587,7 @@
 		<Dialog.Header>
 			<Dialog.Title>管理標籤</Dialog.Title>
 			<Dialog.Description>
-				為選取的 {selectedPhotoIds.size} 張照片設定標籤（會覆蓋現有標籤）
+				為選取的 {selectedPhotoIds.size} 張照片新增或移除標籤，未變更的標籤會保留
 			</Dialog.Description>
 		</Dialog.Header>
 		<div class="space-y-4">
@@ -540,20 +596,22 @@
 				<Button variant="outline" onclick={createTag} disabled={!newTagName.trim()}>新增</Button>
 			</div>
 			<div class="flex flex-wrap gap-2">
-				{#each allTags as tag}
+				{#each allTags as tag (tag.id)}
+					{@const tagState = getTagState(tag.id)}
+					{@const change = tagChanges.get(tag.id)}
 					<button
-						class="rounded-full border px-3 py-1 text-sm transition-colors {selectedTagIds.has(
-							tag.id
-						)
+						class="rounded-full border px-3 py-1 text-sm transition-colors {tagState === 'all'
 							? 'border-primary bg-primary/10 text-primary'
-							: 'border-border text-muted-foreground hover:border-foreground/20'}"
-						onclick={() => {
-							const next = new Set(selectedTagIds);
-							if (next.has(tag.id)) next.delete(tag.id);
-							else next.add(tag.id);
-							selectedTagIds = next;
-						}}
+							: tagState === 'some'
+								? 'border-dashed border-primary/60 text-primary/80'
+								: 'border-border text-muted-foreground hover:border-foreground/20'} {change ===
+						'remove'
+							? 'line-through'
+							: ''}"
+						title={tagState === 'some' ? '部分照片有此標籤' : undefined}
+						onclick={() => toggleTag(tag.id)}
 					>
+						{#if change === 'add'}+{:else if change === 'remove'}−{/if}
 						{tag.name}
 					</button>
 				{/each}
@@ -561,10 +619,21 @@
 					<p class="text-sm text-muted-foreground">尚無標籤，請先建立</p>
 				{/if}
 			</div>
+			{#if allTags.length > 0}
+				<p class="text-xs text-muted-foreground">
+					實線：全部照片都有　虛線：部分照片有　點擊切換新增 / 移除
+				</p>
+			{/if}
 		</div>
 		<Dialog.Footer>
 			<Button variant="outline" onclick={() => (showTagDialog = false)}>取消</Button>
-			<Button onclick={applyTags}>套用標籤</Button>
+			<Button onclick={applyTags} disabled={applyingTags}>
+				{applyingTags
+					? '套用中...'
+					: tagChanges.size > 0
+						? `套用 ${tagChanges.size} 項變更`
+						: '關閉'}
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
